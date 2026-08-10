@@ -45,18 +45,36 @@ CSS = """
 html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
 [data-testid="stAppViewContainer"] {
   background:
-    radial-gradient(1000px 540px at 88% -12%, rgba(124,58,237,.16), transparent 62%),
-    radial-gradient(760px 460px at -12% 112%, rgba(6,182,212,.11), transparent 60%),
-    #070a18;
-  color: #e2e8f0;
+    radial-gradient(1000px 540px at 88% -12%, rgba(124,58,237,.14), transparent 62%),
+    radial-gradient(760px 460px at -12% 112%, rgba(6,182,212,.10), transparent 60%),
+    #0b0f22;
+  color: #f1f5f9;
 }
-[data-testid="stHeader"] { background: rgba(7,10,24,.75); backdrop-filter: blur(10px); }
-[data-testid="stSidebar"] { background: #0a0d1f; border-right: 1px solid rgba(255,255,255,.07); }
-[data-testid="stSidebar"] * { color: #cbd5e1; }
-h1, h2, h3 { font-family: 'Unbounded', sans-serif !important; letter-spacing: -.01em; color: #fff; }
+[data-testid="stAppViewContainer"] p, [data-testid="stAppViewContainer"] span,
+[data-testid="stAppViewContainer"] label, [data-testid="stAppViewContainer"] li {
+  color: #e8edf7;
+}
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] * ,
+.stCaption, small { color: #b6c2d9 !important; }
+[data-testid="stHeader"] { background: rgba(11,15,34,.85); backdrop-filter: blur(10px); }
+[data-testid="stSidebar"] { background: #0e1227; border-right: 1px solid rgba(255,255,255,.1); }
+[data-testid="stSidebar"] * { color: #e8edf7; }
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] * { color: #aab8d0 !important; }
+[data-testid="stSidebar"] label { color: #f1f5f9 !important; font-weight: 600; }
+h1, h2, h3 { font-family: 'Unbounded', sans-serif !important; letter-spacing: -.01em; color: #ffffff !important; }
 h1 { font-size: 1.7rem !important; }
 h2 { font-size: 1.25rem !important; }
 h3 { font-size: 1.02rem !important; }
+h4, h5, h6 { color: #ffffff !important; }
+.stMarkdown, .stMarkdown p { color: #e8edf7; }
+[data-testid="stWidgetLabel"] p { color: #dbe4f3 !important; font-weight: 600; }
+.stSelectbox label, .stMultiSelect label, .stTextInput label,
+.stSlider label, .stDateInput label, .stCheckbox label span { color: #e8edf7 !important; }
+[data-testid="stRadio"] label p { color: #e8edf7 !important; }
+[data-baseweb="tag"] { background: rgba(168,85,247,.3) !important; }
+[data-baseweb="tag"] span { color: #fff !important; }
+div[data-testid="stExpander"] summary p { color: #f1f5f9 !important; font-weight: 700; }
+[data-testid="stAlert"] p { color: #f1f5f9 !important; }
 [data-testid="stMetric"] {
   background: linear-gradient(135deg, rgba(25,31,58,.9), rgba(15,18,35,.95));
   border: 1px solid rgba(255,255,255,.09);
@@ -64,17 +82,19 @@ h3 { font-size: 1.02rem !important; }
   box-shadow: 0 12px 30px -14px rgba(0,0,0,.8);
 }
 [data-testid="stMetricLabel"] {
-  color: #94a3b8 !important; font-size: .72rem !important;
+  color: #c3cfe3 !important; font-size: .72rem !important;
   text-transform: uppercase; letter-spacing: .09em; font-weight: 700;
 }
+[data-testid="stMetricLabel"] p { color: #c3cfe3 !important; }
 [data-testid="stMetricValue"] {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 1.5rem !important; color: #fff !important;
+  font-size: 1.5rem !important; color: #ffffff !important;
 }
+[data-testid="stMetricDelta"] { font-weight: 700; }
 .stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .stTabs [data-baseweb="tab"] {
   background: transparent; border-radius: 10px 10px 0 0;
-  padding: 8px 16px; font-size: .82rem; font-weight: 700; color: #94a3b8;
+  padding: 8px 16px; font-size: .82rem; font-weight: 700; color: #c3cfe3;
 }
 .stTabs [aria-selected="true"] {
   background: rgba(168,85,247,.16) !important; color: #fff !important;
@@ -104,14 +124,17 @@ h3 { font-size: 1.02rem !important; }
   margin:2px 3px 2px 0; border-radius:999px; font-size:.7rem;
   font-weight:600; border:1px solid;
 }
-.chip-num  { color:#6ee7b7; border-color:rgba(16,185,129,.35); background:rgba(16,185,129,.1); }
-.chip-date { color:#67e8f9; border-color:rgba(6,182,212,.35);  background:rgba(6,182,212,.1); }
-.chip-str  { color:#fcd9a8; border-color:rgba(251,146,60,.35); background:rgba(251,146,60,.1); }
+.chip-num  { color:#86efac; border-color:rgba(16,185,129,.5); background:rgba(16,185,129,.16); }
+.chip-date { color:#7dd3fc; border-color:rgba(6,182,212,.5);  background:rgba(6,182,212,.16); }
+.chip-str  { color:#fed7aa; border-color:rgba(251,146,60,.5); background:rgba(251,146,60,.16); }
 .card {
-  background: rgba(18,22,48,.86); border:1px solid rgba(255,255,255,.08);
+  background: rgba(22,27,55,.95); border:1px solid rgba(255,255,255,.14);
   border-radius:16px; padding:16px 18px; box-shadow:0 12px 30px -14px rgba(0,0,0,.75);
+  color:#e8edf7;
 }
-.hint { font-size:.75rem; color:#94a3b8; }
+.card b { color:#ffffff; }
+.hint { font-size:.75rem; color:#b6c2d9; }
+.insight-val { font-family:'JetBrains Mono',monospace; font-size:1.15rem; font-weight:700; color:#fff; }
 .brand {
   font-family:'Unbounded',sans-serif; font-weight:900; font-size:1.05rem;
   background:linear-gradient(135deg,#c084fc,#22d3ee);
@@ -467,15 +490,18 @@ def style_fig(fig, height: int = 420):
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Plus Jakarta Sans", size=12, color="#cbd5e1"),
+        font=dict(family="Plus Jakarta Sans", size=12.5, color="#e8edf7"),
         margin=dict(l=10, r=10, t=36, b=10),
         height=height,
         colorway=PALETTE,
-        legend=dict(orientation="h", y=-0.18, font=dict(size=10)),
-        hoverlabel=dict(bgcolor="#141938", bordercolor="#a855f7", font_size=11),
+        legend=dict(orientation="h", y=-0.18, font=dict(size=11, color="#dbe4f3")),
+        hoverlabel=dict(bgcolor="#1a2040", bordercolor="#a855f7", font_size=12,
+                        font_color="#ffffff"),
     )
-    fig.update_xaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
-    fig.update_yaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
+    fig.update_xaxes(gridcolor="rgba(255,255,255,.09)", zerolinecolor="rgba(255,255,255,.12)",
+                     tickfont=dict(color="#c3cfe3"))
+    fig.update_yaxes(gridcolor="rgba(255,255,255,.09)", zerolinecolor="rgba(255,255,255,.12)",
+                     tickfont=dict(color="#c3cfe3"))
     return fig
 
 
@@ -751,7 +777,8 @@ with tab_over:
             share = top_val / float(ppt.values.sum()) * 100 if ppt.values.sum() else 0
             i1.markdown(
                 f'<div class="card"><b style="color:#c084fc">Лидер по «{pdim}»</b><br>'
-                f"{top_name} — {fmt_num(top_val)} ({share:.1f}% от топ-10)</div>",
+                f'<span class="insight-val">{top_name}</span><br>'
+                f"{fmt_num(top_val)} ({share:.1f}% от топ-10)</div>",
                 unsafe_allow_html=True,
             )
         if not pt.empty and len(pt) >= 2:
@@ -759,18 +786,188 @@ with tab_over:
             prev = float(pt.iloc[-2].sum())
             growth = (last - prev) / prev * 100 if prev else 0
             arrow = "▲" if growth >= 0 else "▼"
-            color = "#6ee7b7" if growth >= 0 else "#fda4af"
+            color = "#86efac" if growth >= 0 else "#fda4af"
             i2.markdown(
                 f'<div class="card"><b style="color:#22d3ee">Последний период</b><br>'
-                f"{pt.index[-1]}: {fmt_num(last)} "
-                f'<span style="color:{color}">{arrow} {abs(growth):.1f}%</span></div>',
+                f'<span class="insight-val">{fmt_num(last)}</span><br>'
+                f"{pt.index[-1]} "
+                f'<span style="color:{color};font-weight:700">{arrow} {abs(growth):.1f}%</span></div>',
                 unsafe_allow_html=True,
             )
         i3.markdown(
-            f'<div class="card"><b style="color:#6ee7b7">Структура таблицы</b><br>'
+            f'<div class="card"><b style="color:#86efac">Структура таблицы</b><br>'
+            f'<span class="insight-val">{DF.shape[1]} столбцов</span><br>'
             f"{len(cols_num)} числовых · {len(cols_date)} дат · {len(cols_txt)} текстовых</div>",
             unsafe_allow_html=True,
         )
+
+        # ── РАСШИРЕННАЯ АНАЛИТИКА ────────────────────────────────────────
+        st.divider()
+        st.subheader("Расширенная аналитика")
+
+        adv1, adv2 = st.columns(2)
+
+        with adv1:
+            st.markdown("##### Топ и антитоп")
+            rank_dim = st.selectbox("Разрез рейтинга", cols_txt or cols_dim, key="adv_rank_dim")
+            rank_pt = build_pivot(FDF, rank_dim, None, meas, "Сумма")
+            if not rank_pt.empty:
+                totals_r = rank_pt.iloc[:, 0].sort_values(ascending=False)
+                t5 = totals_r.head(5)
+                b5 = totals_r.tail(5).sort_values()
+                tc, bc = st.columns(2)
+                with tc:
+                    st.markdown('<b style="color:#86efac">ТОП-5 лидеров</b>', unsafe_allow_html=True)
+                    for name, val in t5.items():
+                        pct = val / totals_r.sum() * 100 if totals_r.sum() else 0
+                        st.markdown(
+                            f'<div style="padding:6px 10px;margin:4px 0;border-radius:10px;'
+                            f'background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35)">'
+                            f'<span style="color:#fff;font-weight:700">{name}</span><br>'
+                            f'<span style="color:#86efac;font-family:JetBrains Mono">{fmt_num(val)}</span> '
+                            f'<span style="color:#b6c2d9;font-size:.72rem">({pct:.1f}%)</span></div>',
+                            unsafe_allow_html=True,
+                        )
+                with bc:
+                    st.markdown('<b style="color:#fda4af">Аутсайдеры</b>', unsafe_allow_html=True)
+                    for name, val in b5.items():
+                        pct = val / totals_r.sum() * 100 if totals_r.sum() else 0
+                        st.markdown(
+                            f'<div style="padding:6px 10px;margin:4px 0;border-radius:10px;'
+                            f'background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3)">'
+                            f'<span style="color:#fff;font-weight:700">{name}</span><br>'
+                            f'<span style="color:#fda4af;font-family:JetBrains Mono">{fmt_num(val)}</span> '
+                            f'<span style="color:#b6c2d9;font-size:.72rem">({pct:.1f}%)</span></div>',
+                            unsafe_allow_html=True,
+                        )
+
+        with adv2:
+            st.markdown("##### ABC-анализ (правило Парето)")
+            abc_dim = st.selectbox("Разрез ABC", cols_txt or cols_dim, key="adv_abc_dim")
+            abc_pt = build_pivot(FDF, abc_dim, None, meas, "Сумма")
+            if not abc_pt.empty:
+                s = abc_pt.iloc[:, 0].sort_values(ascending=False)
+                cum = s.cumsum() / s.sum() * 100 if s.sum() else s.cumsum()
+                abc = pd.DataFrame({
+                    abc_dim: s.index,
+                    "Значение": s.values,
+                    "Доля %": (s / s.sum() * 100).round(1) if s.sum() else 0,
+                    "Накоплено %": cum.round(1).values,
+                })
+                abc["Класс"] = np.where(abc["Накоплено %"] <= 80, "A",
+                                np.where(abc["Накоплено %"] <= 95, "B", "C"))
+                counts = abc["Класс"].value_counts()
+                st.markdown(
+                    f'<div style="display:flex;gap:8px;margin-bottom:8px">'
+                    f'<span class="chip chip-num">A: {counts.get("A",0)} — дают 80%</span>'
+                    f'<span class="chip chip-date">B: {counts.get("B",0)} — ещё 15%</span>'
+                    f'<span class="chip chip-str">C: {counts.get("C",0)} — хвост 5%</span></div>',
+                    unsafe_allow_html=True,
+                )
+                fig_abc = go.Figure()
+                fig_abc.add_trace(go.Bar(
+                    x=abc[abc_dim].astype(str), y=abc["Значение"], name="Значение",
+                    marker_color=["#10b981" if c == "A" else "#06b6d4" if c == "B" else "#f43f5e"
+                                  for c in abc["Класс"]],
+                ))
+                fig_abc.add_trace(go.Scatter(
+                    x=abc[abc_dim].astype(str), y=abc["Накоплено %"], name="Накоплено %",
+                    yaxis="y2", mode="lines+markers", line=dict(color="#a855f7", width=3),
+                ))
+                fig_abc.update_layout(
+                    yaxis2=dict(overlaying="y", side="right", range=[0, 105],
+                                tickfont=dict(color="#c084fc"), gridcolor="rgba(0,0,0,0)"),
+                )
+                st.plotly_chart(style_fig(fig_abc, 320), use_container_width=True)
+
+        adv3, adv4 = st.columns(2)
+
+        with adv3:
+            st.markdown("##### Темп роста по периодам")
+            if cols_date:
+                g_date = cols_date[0]
+                g_pt = build_pivot(FDF, g_date, None, meas, "Сумма", "Месяц")
+                if len(g_pt) >= 2:
+                    ser = g_pt.iloc[:, 0]
+                    growth_ser = ser.pct_change().fillna(0) * 100
+                    fig_g = go.Figure(go.Bar(
+                        x=[str(i) for i in growth_ser.index], y=growth_ser.values,
+                        marker_color=["#10b981" if v >= 0 else "#f43f5e" for v in growth_ser.values],
+                        text=[f"{v:+.0f}%" for v in growth_ser.values], textposition="outside",
+                        textfont=dict(color="#e8edf7"),
+                    ))
+                    fig_g.update_layout(title=dict(text=f"Прирост «{meas}» месяц к месяцу, %",
+                                                   font=dict(size=13, color="#dbe4f3")))
+                    st.plotly_chart(style_fig(fig_g, 300), use_container_width=True)
+                    avg_g = growth_ser[1:].mean() if len(growth_ser) > 1 else 0
+                    pos_months = int((growth_ser[1:] > 0).sum())
+                    st.markdown(
+                        f'<div class="card">Средний темп: '
+                        f'<b style="color:{"#86efac" if avg_g>=0 else "#fda4af"}">{avg_g:+.1f}%</b> в месяц · '
+                        f'месяцев роста: <b>{pos_months}</b> из {max(len(growth_ser)-1,0)}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.info("Недостаточно периодов для расчёта темпа роста.")
+            else:
+                st.info("В данных нет столбца-даты — тренд роста недоступен.")
+
+        with adv4:
+            st.markdown("##### Взаимосвязь показателей")
+            if len(cols_num) >= 2:
+                sc1, sc2 = st.columns(2)
+                mx = sc1.selectbox("Ось X", cols_num, key="adv_sc_x", index=0)
+                my = sc2.selectbox("Ось Y", cols_num, key="adv_sc_y",
+                                   index=1 if len(cols_num) > 1 else 0)
+                color_dim = cols_txt[0] if cols_txt else None
+                sc_df = pd.DataFrame({
+                    mx: to_num(FDF[mx]), my: to_num(FDF[my]),
+                }).dropna()
+                if color_dim:
+                    sc_df[color_dim] = FDF.loc[sc_df.index, color_dim].astype(str)
+                if not sc_df.empty:
+                    corr = sc_df[mx].corr(sc_df[my])
+                    fig_sc = px.scatter(
+                        sc_df, x=mx, y=my,
+                        color=color_dim if color_dim else None,
+                        opacity=0.75, trendline=None,
+                    )
+                    st.plotly_chart(style_fig(fig_sc, 300), use_container_width=True)
+                    strength = ("сильная" if abs(corr) >= 0.7 else
+                                "умеренная" if abs(corr) >= 0.4 else "слабая")
+                    st.markdown(
+                        f'<div class="card">Корреляция «{mx}» и «{my}»: '
+                        f'<b style="color:#c084fc">{corr:+.2f}</b> ({strength})</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("Нужно минимум 2 числовых столбца для анализа взаимосвязи.")
+
+        st.divider()
+        st.markdown("##### Описательная статистика по числовым столбцам")
+        if cols_num:
+            desc_rows = []
+            for c in cols_num:
+                v = to_num(FDF[c]).dropna()
+                if v.empty:
+                    continue
+                desc_rows.append({
+                    "Показатель": c,
+                    "Сумма": float(v.sum()),
+                    "Среднее": float(v.mean()),
+                    "Медиана": float(v.median()),
+                    "Мин": float(v.min()),
+                    "Макс": float(v.max()),
+                    "Ст.откл.": float(v.std()) if len(v) > 1 else 0.0,
+                    "Заполнено": f"{len(v)}/{len(FDF)}",
+                })
+            if desc_rows:
+                desc_df = pd.DataFrame(desc_rows).set_index("Показатель")
+                num_cols_fmt = ["Сумма", "Среднее", "Медиана", "Мин", "Макс", "Ст.откл."]
+                st.dataframe(
+                    desc_df.style.format({c: (lambda v: fmt_num(v)) for c in num_cols_fmt}),
+                    use_container_width=True,
+                )
 
 
 # =============================================================================
