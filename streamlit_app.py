@@ -1,837 +1,1044 @@
+# -*- coding: utf-8 -*-
 """
-╔═══════════════════════════════════════════════════════════════════════════════
-║  BI PLATFORM — Монолитное Streamlit Приложение
-║  Один файл • Google Sheets • Excel • Дашборды • Тренды • Аномалии
-║  Вдохновлено: github.com/mckinsey/vizro/tree/main/vizro-ai
-╚═══════════════════════════════════════════════════════════════════════════════
+ADAPTIVE BI — монолитное Streamlit-приложение.
+Загрузите ЛЮБУЮ таблицу (Excel / CSV / JSON / Google Sheets / ссылка / буфер обмена) —
+приложение само определит типы столбцов, построит умные фильтры по вашим данным
+и позволит собрать любые графики и сводные таблицы по любым полям.
 
-Запуск:
-    pip install streamlit pandas plotly openpyxl gspread
-    streamlit run app.py
-
-Функционал:
-    ✓ Синхронизация Google Sheets (автообновление)
-    ✓ Загрузка Excel/CSV файлов
-    ✓ Динамические фильтры по всем колонкам
-    ✓ KPI карточки с трендами и sparkline
-    ✓ Конструктор графиков (5 типов, агрегации, группировки)
-    ✓ Сводные таблицы (Pivot)
-    ✓ Анализ трендов (скользящее среднее, рост %)
-    ✓ Детекция аномалий (>2.5σ)
-    ✓ Таблица с сортировкой и экспортом
+Запуск:  streamlit run streamlit_app.py
 """
 
-import streamlit as st
+import io
+import json
+import re
+import warnings
+from datetime import datetime, date
+
+import numpy as np
 import pandas as pd
+import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
-from datetime import datetime, timedelta
-import re, io, json, hashlib
-from typing import Dict, List, Optional, Tuple, Any
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  CONFIG & THEME
-# ═══════════════════════════════════════════════════════════════════════════════
+warnings.filterwarnings("ignore")
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  КОНФИГУРАЦИЯ И СТИЛИ
+# ──────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="BI Platform",
+    page_title="Adaptive BI — любые данные, любые отчёты",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Vizro-inspired dark theme
-VIZRO_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#ec4899', '#84cc16', '#f97316', '#14b8a6']
+PALETTE = ["#a855f7", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#6366f1",
+           "#84cc16", "#f43f5e", "#14b8a6", "#eab308", "#8b5cf6", "#22d3ee"]
 
-def apply_theme():
-    st.markdown("""
-    <style>
-    .main { background: #f8fafc; }
-    .stMetric { background: white; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0; }
-    [data-testid="stMetricValue"] { font-size: 28px; font-weight: 700; color: #1e293b; }
-    [data-testid="stMetricDelta"] { font-size: 12px; }
-    .card { background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 16px; }
-    .header { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 4px; }
-    .stTabs [data-baseweb="tab"] { border-radius: 8px; padding: 8px 16px; }
-    .stTabs [aria-selected="true"] { background: #4f46e5; color: white; }
-    </style>
-    """, unsafe_allow_html=True)
+CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
-apply_theme()
+html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  SAMPLE DATA GENERATOR
-# ═══════════════════════════════════════════════════════════════════════════════
+[data-testid="stAppViewContainer"] {
+    background:
+      radial-gradient(1000px 540px at 88% -12%, rgba(124,58,237,.16), transparent 62%),
+      radial-gradient(760px 460px at -12% 112%, rgba(6,182,212,.11), transparent 60%),
+      #070a18;
+    color: #e2e8f0;
+}
+[data-testid="stHeader"] { background: rgba(7,10,24,.75); backdrop-filter: blur(10px); }
+[data-testid="stSidebar"] { background: #0a0d1f; border-right: 1px solid rgba(255,255,255,.07); }
+[data-testid="stSidebar"] * { color: #cbd5e1; }
+
+h1, h2, h3 { font-family: 'Unbounded', sans-serif !important; letter-spacing: -.01em; color: #fff; }
+h1 { font-size: 1.7rem !important; }
+h2 { font-size: 1.25rem !important; }
+h3 { font-size: 1.02rem !important; }
+
+/* KPI карточки */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, rgba(25,31,58,.9), rgba(15,18,35,.95));
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 16px; padding: 16px 18px;
+    box-shadow: 0 12px 30px -14px rgba(0,0,0,.8);
+}
+[data-testid="stMetricLabel"] { color: #94a3b8 !important; font-size: .72rem !important;
+    text-transform: uppercase; letter-spacing: .09em; font-weight: 700; }
+[data-testid="stMetricValue"] { font-family: 'JetBrains Mono', monospace !important;
+    font-size: 1.5rem !important; color: #fff !important; }
+
+/* Табы */
+.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.stTabs [data-baseweb="tab"] { background: transparent; border-radius: 10px 10px 0 0;
+    padding: 8px 16px; font-size: .82rem; font-weight: 700; color: #94a3b8; }
+.stTabs [aria-selected="true"] { background: rgba(168,85,247,.16) !important;
+    color: #fff !important; box-shadow: inset 0 -2px 0 #a855f7; }
+
+/* Кнопки */
+.stButton > button, .stDownloadButton > button {
+    border-radius: 12px; border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.04); color: #e2e8f0;
+    font-weight: 700; font-size: .8rem; transition: .16s;
+}
+.stButton > button:hover, .stDownloadButton > button:hover {
+    border-color: #a855f7; background: rgba(168,85,247,.16); color: #fff;
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg,#7e22ce,#ec4899); border: none; color: #fff;
+}
+
+/* Поля ввода */
+[data-baseweb="input"], [data-baseweb="select"] > div, .stTextArea textarea {
+    background: #141835 !important; border-color: rgba(255,255,255,.1) !important;
+    border-radius: 12px !important; color: #e2e8f0 !important;
+}
+[data-testid="stExpander"] { border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
+    background: rgba(18,22,48,.7); }
+
+/* Плашки-чипы */
+.chip { display:inline-flex; align-items:center; gap:6px; padding:4px 11px; margin:2px 3px 2px 0;
+    border-radius:999px; font-size:.7rem; font-weight:600; border:1px solid; }
+.chip-num  { color:#6ee7b7; border-color:rgba(16,185,129,.35); background:rgba(16,185,129,.1); }
+.chip-date { color:#67e8f9; border-color:rgba(6,182,212,.35);  background:rgba(6,182,212,.1); }
+.chip-str  { color:#fcd9a8; border-color:rgba(251,146,60,.35); background:rgba(251,146,60,.1); }
+
+.card { background: rgba(18,22,48,.86); border:1px solid rgba(255,255,255,.08);
+    border-radius:16px; padding:16px 18px; box-shadow:0 12px 30px -14px rgba(0,0,0,.75); }
+.hint { font-size:.75rem; color:#94a3b8; }
+.brand { font-family:'Unbounded',sans-serif; font-weight:900; font-size:1.05rem;
+    background:linear-gradient(135deg,#c084fc,#22d3ee); -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent; }
+#MainMenu, footer { visibility: hidden; }
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+NUM, DATE, TXT = "число", "дата", "текст"
+TYPE_CHIP = {NUM: "chip-num", DATE: "chip-date", TXT: "chip-str"}
+TYPE_ICON = {NUM: "#", DATE: "📅", TXT: "T"}
+
+AGGS = {
+    "Сумма": "sum", "Среднее": "mean", "Количество": "count",
+    "Уникальных": "nunique", "Минимум": "min", "Максимум": "max", "Медиана": "median",
+}
+NUMERIC_AGGS = {"sum", "mean", "min", "max", "median"}
+
+CHARTS = [
+    "Столбцы", "Столбцы горизонтальные", "Столбцы с накоплением", "Сгруппированные столбцы",
+    "Линия", "Область", "Круговая", "Кольцевая", "Treemap", "Sunburst",
+    "Радар", "Полярная", "Точечная", "Пузырьковая", "Воронка", "Водопад",
+    "Тепловая карта", "Ящик с усами", "Скрипка", "Гистограмма", "Индикатор KPI", "Сводная таблица",
+]
+RAW_CHARTS = {"Ящик с усами", "Скрипка", "Гистограмма"}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  УТИЛИТЫ: ТИПЫ, ЧИСТКА, ДЕМО-ДАННЫЕ
+# ──────────────────────────────────────────────────────────────────────────────
+
+def to_num(s: pd.Series) -> pd.Series:
+    """Аккуратно превращает строки вида '1 234,56 ₽' в числа."""
+    if pd.api.types.is_numeric_dtype(s):
+        return s
+    cleaned = (s.astype(str)
+                 .str.replace(r"\s|\u00a0", "", regex=True)
+                 .str.replace(",", ".", regex=False)
+                 .str.replace(r"[^\d.\-eE]", "", regex=True)
+                 .replace({"": None, "-": None, ".": None}))
+    return pd.to_numeric(cleaned, errors="coerce")
+
+
+def to_date(s: pd.Series) -> pd.Series:
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return s
+    return pd.to_datetime(s, errors="coerce", dayfirst=True)
+
+
+def detect_type(s: pd.Series) -> str:
+    """Определяет тип столбца по содержимому."""
+    sample = s.dropna()
+    sample = sample[sample.astype(str).str.strip() != ""]
+    if sample.empty:
+        return TXT
+    sample = sample.head(300)
+
+    if pd.api.types.is_numeric_dtype(sample):
+        return NUM
+    if pd.api.types.is_datetime64_any_dtype(sample):
+        return DATE
+
+    as_str = sample.astype(str)
+    looks_date = as_str.str.contains(r"\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}")
+    if looks_date.mean() >= 0.55 and to_date(sample).notna().mean() >= 0.55:
+        return DATE
+
+    numeric_like = as_str.str.fullmatch(r"[\d\s\u00a0.,+\-%₽$€]{1,20}")
+    if numeric_like.fillna(False).mean() >= 0.55 and to_num(sample).notna().mean() >= 0.55:
+        return NUM
+    return TXT
+
+
+def detect_schema(df: pd.DataFrame) -> dict:
+    return {c: detect_type(df[c]) for c in df.columns}
+
+
+def coerce_types(df: pd.DataFrame, types: dict) -> pd.DataFrame:
+    out = df.copy()
+    for c, t in types.items():
+        if c not in out.columns:
+            continue
+        if t == NUM:
+            out[c] = to_num(out[c])
+        elif t == DATE:
+            out[c] = to_date(out[c])
+        else:
+            out[c] = out[c].astype(str).replace({"nan": "", "NaT": "", "None": ""})
+    return out
+
+
+def guess_primary_measure(types: dict) -> str | None:
+    nums = [c for c, t in types.items() if t == NUM]
+    if not nums:
+        return None
+    for kw in ["выруч", "revenue", "сумм", "total", "прибыл", "profit", "amount", "продаж", "цена", "price"]:
+        for c in nums:
+            if kw in c.lower():
+                return c
+    return nums[0]
+
 
 @st.cache_data(show_spinner=False)
-def generate_sample_data(n: int = 1400) -> pd.DataFrame:
-    """Генерация демо-данных продаж"""
-    np.random.seed(20240715)
-    dates = pd.date_range('2024-01-01', periods=730, freq='D')
-    regions = ['Москва', 'Санкт-Петербург', 'Урал', 'Сибирь', 'Юг', 'Дальний Восток']
-    categories = ['Электроника', 'Одежда', 'Продукты', 'Мебель', 'Спорт', 'Красота', 'Книги']
-    channels = ['Онлайн', 'Розница', 'Маркетплейс', 'Опт']
-    managers = ['Иванов', 'Петрова', 'Сидоров', 'Кузнецова', 'Смирнов', 'Волкова', 'Козлов', 'Морозова']
-    cat_base = {'Электроника': 95000, 'Одежда': 34000, 'Продукты': 18000, 'Мебель': 61000, 
-                'Спорт': 27000, 'Красота': 22000, 'Книги': 8500}
-    
-    data = []
-    for _ in range(n):
-        d = dates[np.random.randint(0, len(dates))]
-        cat = np.random.choice(categories)
-        month = d.month
-        seasonal = 1 + 0.4 * np.sin((month - 1) / 12 * 2 * np.pi) + (0.5 if month in [11, 12] else 0)
-        trend = 1 + (dates.get_loc(d) / len(dates)) * 0.5
-        qty = np.random.randint(1, 15)
-        revenue = int(cat_base[cat] * seasonal * trend * (0.55 + np.random.random() * 0.9) * qty / 6)
-        margin = 0.12 + np.random.random() * 0.26
-        profit = int(revenue * margin)
-        data.append({
-            'Дата': d.strftime('%Y-%m-%d'),
-            'Регион': np.random.choice(regions),
-            'Категория': cat,
-            'Канал': np.random.choice(channels),
-            'Менеджер': np.random.choice(managers),
-            'Количество': qty,
-            'Выручка,₽': revenue,
-            'Прибыль,₽': profit,
-            'Расходы,₽': revenue - profit
-        })
-    return pd.DataFrame(data).sort_values('Дата').reset_index(drop=True)
+def make_demo(n: int = 400) -> pd.DataFrame:
+    rng = np.random.default_rng(7)
+    cities = ["Москва", "Санкт-Петербург", "Казань", "Екатеринбург", "Новосибирск", "Краснодар", "Алматы", "Минск"]
+    regions = {"Москва": "Центр", "Санкт-Петербург": "Северо-Запад", "Казань": "Поволжье",
+               "Екатеринбург": "Урал", "Новосибирск": "Сибирь", "Краснодар": "Юг",
+               "Алматы": "Казахстан", "Минск": "Беларусь"}
+    clients = ["ООО Вектор", "АО ТехноПром", "ИП Иванов", "Альфа Логистик", "Урал Маш",
+               "ТОО Логистик", "СтройГрупп", "ИП Петрова", "ЮгТрейд", "Дельта Систем"]
+    cats = ["Оборудование", "Софт", "Сервис", "Комплектующие", "Консалтинг", "Логистика"]
+    managers = ["Смирнов А.", "Ковалева Е.", "Соколов Д.", "Морозова О.", "Волков М."]
+    channels = ["Прямые", "Дистрибьютор", "Маркетплейс", "Тендер"]
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  DATA LOADING FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════════════
+    city = rng.choice(cities, n)
+    revenue = rng.integers(25_000, 520_000, n)
+    margin = rng.uniform(0.16, 0.46, n)
+    days = rng.integers(0, 730, n)
 
-def parse_google_sheet_url(url: str) -> Optional[str]:
-    """Извлекает ID таблицы из URL Google Sheets"""
-    match = re.search(r'/spreadsheets/d/([a-zA-Z0-9-_]+)', url)
-    if match:
-        sheet_id = match.group(1)
-        gid_match = re.search(r'gid=(\d+)', url)
-        gid = gid_match.group(1) if gid_match else '0'
-        return f'https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}'
-    return None
+    return pd.DataFrame({
+        "Дата": pd.to_datetime("2023-01-01") + pd.to_timedelta(days, unit="D"),
+        "Клиент": rng.choice(clients, n),
+        "Город": city,
+        "Регион": [regions[c] for c in city],
+        "Менеджер": rng.choice(managers, n),
+        "Категория": rng.choice(cats, n),
+        "Канал продаж": rng.choice(channels, n),
+        "Выручка": revenue,
+        "Прибыль": (revenue * margin).round(0).astype(int),
+        "Количество": rng.integers(1, 60, n),
+        "Скидка %": rng.integers(0, 25, n),
+        "Статус": rng.choice(["Оплачено", "В работе", "Просрочен"], n, p=[0.78, 0.16, 0.06]),
+    })
 
-@st.cache_data(ttl=60)
-def load_google_sheet(url: str) -> pd.DataFrame:
-    """Загрузка данных из Google Sheets"""
-    csv_url = parse_google_sheet_url(url)
-    if not csv_url:
-        raise ValueError("Неверный URL Google Sheets. Пример: https://docs.google.com/spreadsheets/d/ID/edit")
+
+def to_excel_bytes(df: pd.DataFrame, sheet: str = "Данные") -> bytes:
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as w:
+        df.to_excel(w, index=False, sheet_name=sheet[:31])
+    return buf.getvalue()
+
+
+def fmt_num(v) -> str:
     try:
-        df = pd.read_csv(csv_url)
-        if df.empty:
-            raise ValueError("Таблица пуста")
-        return df
-    except Exception as e:
-        # Fallback через gviz
-        sheet_id = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
-        if sheet_id:
-            gviz_url = f"https://docs.google.com/spreadsheets/d/{sheet_id.group(1)}/gviz/tq?tqx=out:csv"
-            df = pd.read_csv(gviz_url)
-            return df
-        raise e
+        v = float(v)
+    except (TypeError, ValueError):
+        return str(v)
+    if abs(v) >= 1_000_000_000:
+        return f"{v/1_000_000_000:,.2f} млрд".replace(",", " ")
+    if abs(v) >= 1_000_000:
+        return f"{v/1_000_000:,.2f} млн".replace(",", " ")
+    return f"{v:,.0f}".replace(",", " ")
 
-def load_file(uploaded_file) -> pd.DataFrame:
-    """Загрузка Excel/CSV файла"""
-    filename = uploaded_file.name.lower()
-    if filename.endswith('.csv'):
-        return pd.read_csv(uploaded_file)
-    elif filename.endswith(('.xlsx', '.xls')):
-        return pd.read_excel(uploaded_file)
-    elif filename.endswith('.json'):
-        return pd.read_json(uploaded_file)
-    else:
-        # Попытка CSV
-        return pd.read_csv(uploaded_file, encoding='utf-8')
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  ANALYTICS FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════════════
+# ──────────────────────────────────────────────────────────────────────────────
+#  SESSION STATE
+# ──────────────────────────────────────────────────────────────────────────────
 
-def calc_trend(values: pd.Series) -> Tuple[float, float]:
-    """Расчёт тренда: slope и % изменение"""
-    if len(values) < 2:
-        return 0.0, 0.0
-    x = np.arange(len(values))
-    y = values.values
-    n = len(x)
-    sum_x, sum_y = x.sum(), y.sum()
-    sum_xy = (x * y).sum()
-    sum_x2 = (x ** 2).sum()
-    denom = n * sum_x2 - sum_x ** 2
-    slope = (n * sum_xy - sum_x * sum_y) / denom if denom != 0 else 0
-    pct = ((y[-1] - y[0]) / (abs(y[0]) + 1e-9)) * 100
-    return slope, pct
+def init_state():
+    if "df" not in st.session_state:
+        demo = make_demo()
+        st.session_state.df = demo
+        st.session_state.types = detect_schema(demo)
+        st.session_state.source = "Демо-набор (12 столбцов)"
+    st.session_state.setdefault("reports", [])
+    st.session_state.setdefault("pending", None)      # DataFrame ожидающий подтверждения
+    st.session_state.setdefault("pending_name", "")
+    st.session_state.setdefault("pending_cfg", None)
 
-def detect_anomalies(df: pd.DataFrame, col: str, threshold: float = 2.5) -> pd.DataFrame:
-    """Поиск аномалий по правилу > threshold * σ"""
-    values = df[col].dropna()
-    if len(values) < 20:
-        return pd.DataFrame()
-    mean = values.mean()
-    std = values.std()
-    if std == 0:
-        return pd.DataFrame()
-    anomalies = df[np.abs(df[col] - mean) > threshold * std]
-    return anomalies.head(50)
 
-def aggregate_data(df: pd.DataFrame, x: str, y: str, agg: str, color: Optional[str] = None, 
-                   bucket: str = 'month') -> pd.DataFrame:
-    """Агрегация данных для графиков"""
-    result = df.copy()
-    
-    # Bucketing для дат
-    if pd.api.types.is_datetime64_any_dtype(result[x]) or x.lower() in ['дата', 'date']:
-        result[x] = pd.to_datetime(result[x], errors='coerce')
-        if bucket == 'day':
-            result[x] = result[x].dt.strftime('%Y-%m-%d')
-        elif bucket == 'week':
-            result[x] = result[x].dt.to_period('W').dt.start_time.dt.strftime('%Y-%m-%d')
-        elif bucket == 'month':
-            result[x] = result[x].dt.to_period('M').dt.start_time.dt.strftime('%Y-%m')
-        elif bucket == 'quarter':
-            result[x] = result[x].dt.to_period('Q').dt.start_time.dt.strftime('%Y-Q%q')
-        elif bucket == 'year':
-            result[x] = result[x].dt.to_period('Y').dt.start_time.dt.strftime('%Y')
-    
-    # Группировка
-    group_cols = [x]
-    if color and color in result.columns:
-        group_cols.append(color)
-    
-    if agg == 'count':
-        grouped = result.groupby(group_cols).size().reset_index(name=y)
-    elif agg == 'avg':
-        grouped = result.groupby(group_cols)[y].mean().reset_index()
-    elif agg == 'min':
-        grouped = result.groupby(group_cols)[y].min().reset_index()
-    elif agg == 'max':
-        grouped = result.groupby(group_cols)[y].max().reset_index()
-    else:  # sum
-        grouped = result.groupby(group_cols)[y].sum().reset_index()
-    
-    return grouped
+init_state()
+DF: pd.DataFrame = st.session_state.df
+TYPES: dict = st.session_state.types
 
-def create_pivot_table(df: pd.DataFrame, index: str, columns: Optional[str], 
-                       values: str, agg: str) -> pd.DataFrame:
-    """Создание сводной таблицы"""
-    return pd.pivot_table(df, index=index, columns=columns, values=values, 
-                         aggfunc=agg, fill_value=0, margins=True, margins_name='Итого')
+cols_num = [c for c in DF.columns if TYPES.get(c) == NUM]
+cols_date = [c for c in DF.columns if TYPES.get(c) == DATE]
+cols_txt = [c for c in DF.columns if TYPES.get(c) == TXT]
+cols_dim = cols_txt + cols_date          # всё, по чему можно группировать
+PRIMARY = guess_primary_measure(TYPES)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  CHART BUILDERS
-# ═══════════════════════════════════════════════════════════════════════════════
 
-def create_chart(df: pd.DataFrame, chart_type: str, x: str, y: str, 
-                 color: Optional[str] = None, agg: str = 'sum', 
-                 bucket: str = 'month', title: str = '') -> go.Figure:
-    """Создание графика Plotly"""
-    aggregated = aggregate_data(df, x, y, agg, color, bucket)
-    
-    if chart_type == 'line':
-        fig = px.line(aggregated, x=x, y=y, color=color, title=title,
-                     color_discrete_sequence=VIZRO_COLORS, markers=True)
-    elif chart_type == 'bar':
-        fig = px.bar(aggregated, x=x, y=y, color=color, title=title,
-                    color_discrete_sequence=VIZRO_COLORS, barmode='group')
-    elif chart_type == 'area':
-        fig = px.area(aggregated, x=x, y=y, color=color, title=title,
-                     color_discrete_sequence=VIZRO_COLORS)
-    elif chart_type == 'pie':
-        fig = px.pie(aggregated, names=x, values=y, title=title,
-                    color_discrete_sequence=VIZRO_COLORS, hole=0.5)
-    elif chart_type == 'scatter':
-        fig = px.scatter(df, x=x, y=y, color=color, title=title,
-                        color_discrete_sequence=VIZRO_COLORS, trendline='ols')
-    else:
-        fig = px.line(aggregated, x=x, y=y, title=title, color_discrete_sequence=VIZRO_COLORS)
-    
-    fig.update_layout(
-        template='plotly_white',
-        height=350,
-        margin=dict(l=40, r=20, t=40, b=40),
-        showlegend=True if color else False,
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
-    )
-    fig.update_xaxes(tickfont=dict(size=10))
-    fig.update_yaxes(tickfont=dict(size=10), tickformat=',.0f')
-    
-    return fig
+# ──────────────────────────────────────────────────────────────────────────────
+#  УМНЫЕ ФИЛЬТРЫ — СТРОЯТСЯ ПО ЗАГРУЖЕННЫМ ДАННЫМ
+# ──────────────────────────────────────────────────────────────────────────────
 
-def create_kpi_sparkline(values: pd.Series, color: str = '#4f46e5') -> go.Figure:
-    """Создание sparkline для KPI"""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        y=values.values,
-        mode='lines',
-        line=dict(color=color, width=2),
-        fill='tozeroy',
-        fillcolor=color.replace(')', ', 0.2)').replace('rgb', 'rgba'),
-        hoverinfo='skip'
-    ))
-    fig.update_layout(
-        height=60,
-        margin=dict(l=0, r=0, t=0, b=0),
-        xaxis=dict(showgrid=False, showticklabels=False),
-        yaxis=dict(showgrid=False, showticklabels=False),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    return fig
+def render_smart_filters(df: pd.DataFrame, types: dict) -> tuple[pd.DataFrame, list[str]]:
+    """Возвращает отфильтрованный df и список описаний активных фильтров."""
+    mask = pd.Series(True, index=df.index)
+    active: list[str] = []
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MAIN APP
-# ═══════════════════════════════════════════════════════════════════════════════
+    search = st.sidebar.text_input("🔎 Поиск по всем столбцам", key="flt__search",
+                                   placeholder="ищем во всех полях...")
+    if search:
+        joined = df.astype(str).agg(" ".join, axis=1).str.lower()
+        mask &= joined.str.contains(re.escape(search.lower()), na=False)
+        active.append(f'поиск: "{search}"')
 
-def main():
-    # ─── HEADER ──────────────────────────────────────────────────────────────
-    st.markdown("""
-    <div class="header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="font-size: 32px;">📊</div>
-            <div>
-                <h1 style="margin: 0; font-size: 24px; font-weight: 700;">BI Platform</h1>
-                <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;">
-                    Монолитное приложение • Google Sheets • Excel • Дашборды • Тренды • Аномалии
-                </p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # ─── SIDEBAR: DATA SOURCE ────────────────────────────────────────────────
-    with st.sidebar:
-        st.markdown("### 📦 Источник данных")
-        
-        source = st.radio(
-            "Выберите источник:",
-            ['🎲 Демо-данные', '🟢 Google Sheets', '📁 Загрузить файл'],
-            index=0,
-            label_visibility='collapsed'
-        )
-        
-        df = pd.DataFrame()
-        
-        if source == '🎲 Демо-данные':
-            df = generate_sample_data(1400)
-            st.success(f"**{len(df):,}** записей загружено")
-            st.caption("730 дней • 7 регионов • 7 категорий • 4 канала")
-            
-        elif source == '🟢 Google Sheets':
-            st.info("📋 Откройте доступ: **Файл → Поделиться → Все у кого есть ссылка → Читатель**")
-            gs_url = st.text_input(
-                "URL Google Sheets:",
-                placeholder="https://docs.google.com/spreadsheets/d/.../edit",
-                help="Вставьте ссылку на Google таблицу"
-            )
-            auto_sync = st.checkbox("🔄 Автообновление (60 сек)", value=False)
-            
-            if gs_url:
-                if st.button("Синхронизировать", type="primary", use_container_width=True):
-                    with st.spinner("Загрузка данных..."):
-                        try:
-                            df = load_google_sheet(gs_url)
-                            st.success(f"✅ Синхронизировано: **{len(df):,}** строк")
-                            st.session_state['gs_url'] = gs_url
-                        except Exception as e:
-                            st.error(f"❌ Ошибка: {str(e)}")
-            
-            if auto_sync and 'gs_url' in st.session_state:
-                st.caption("🔄 Автообновление активно")
-                st.rerun()
-                
-        else:  # File upload
-            uploaded = st.file_uploader(
-                "Загрузите файл:",
-                type=['csv', 'xlsx', 'xls', 'json'],
-                help="Поддерживаются: CSV, Excel, JSON"
-            )
-            if uploaded:
-                with st.spinner("Обработка файла..."):
-                    try:
-                        df = load_file(uploaded)
-                        st.success(f"✅ Загружено: **{len(df):,}** строк")
-                    except Exception as e:
-                        st.error(f"❌ Ошибка чтения: {str(e)}")
-        
-        if not df.empty:
-            st.divider()
-            st.markdown("### 📊 Информация о данных")
-            col_meta = st.columns(2)
-            with col_meta[0]:
-                st.metric("Строк", f"{len(df):,}")
-            with col_meta[1]:
-                st.metric("Колонок", len(df.columns))
-            
-            # Column types
-            st.caption("**Типы колонок:**")
-            type_info = df.dtypes.astype(str).value_counts()
-            for t, c in type_info.items():
-                st.caption(f"• {t}: {c}")
-    
-    # ─── MAIN CONTENT ────────────────────────────────────────────────────────
-    if df.empty:
-        st.info("👈 Выберите источник данных в панели слева")
-        st.stop()
-    
-    # ─── TABS ────────────────────────────────────────────────────────────────
-    tabs = st.tabs([
-        "🏠 Обзор",
-        "🛠 Конструктор графиков",
-        "🧮 Сводная таблица",
-        "📈 Тренды",
-        "⚠ Аномалии",
-        "📋 Данные"
-    ])
-    
-    # ─── FILTERS (common for all tabs) ─────────────────────────────────────
-    with st.expander("🔍 Фильтры и срезы", expanded=False):
-        filter_cols = st.columns(min(4, len(df.columns)))
-        filters = {}
-        
-        num_cols = df.select_dtypes(include=['number']).columns.tolist()
-        date_cols = [c for c in df.columns if 'дата' in c.lower() or 'date' in c.lower() or pd.api.types.is_datetime64_dtype(df[c])]
-        cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        
-        for i, col in enumerate(df.columns[:4]):
-            with filter_cols[i % len(filter_cols)]:
-                if col in date_cols:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
-                    min_date = df[col].min()
-                    max_date = df[col].max()
-                    date_range = st.date_input(
-                        f"📅 {col}",
-                        value=(min_date, max_date),
-                        key=f"filter_{col}"
-                    )
-                    if isinstance(date_range, tuple) and len(date_range) == 2:
-                        filters[col] = ('date', date_range)
-                elif col in num_cols:
-                    min_val = float(df[col].min())
-                    max_val = float(df[col].max())
-                    range_val = st.slider(
-                        f"📊 {col}",
-                        min_value=min_val,
-                        max_value=max_val,
-                        value=(min_val, max_val),
-                        key=f"filter_{col}"
-                    )
-                    filters[col] = ('range', range_val)
-                elif col in cat_cols and df[col].nunique() <= 30:
-                    options = df[col].dropna().unique().tolist()
-                    selected = st.multiselect(
-                        f"🏷 {col}",
-                        options,
-                        default=options,
-                        key=f"filter_{col}"
-                    )
-                    filters[col] = ('select', selected)
-        
-        # Search
-        search = st.text_input("🔎 Поиск по всем колонкам:", placeholder="Введите текст для поиска...")
-        
-        # Apply filters
-        filtered_df = df.copy()
-        for col, (ftype, fval) in filters.items():
-            if ftype == 'date' and isinstance(fval, tuple):
-                filtered_df = filtered_df[
-                    (pd.to_datetime(filtered_df[col], errors='coerce') >= pd.Timestamp(fval[0])) &
-                    (pd.to_datetime(filtered_df[col], errors='coerce') <= pd.Timestamp(fval[1]) + timedelta(days=1))
-                ]
-            elif ftype == 'range':
-                filtered_df = filtered_df[(filtered_df[col] >= fval[0]) & (filtered_df[col] <= fval[1])]
-            elif ftype == 'select':
-                filtered_df = filtered_df[filtered_df[col].isin(fval)]
-        
-        if search:
-            for col in filtered_df.columns:
-                if filtered_df[col].dtype == 'object':
-                    filtered_df = filtered_df[filtered_df[col].astype(str).str.contains(search, case=False, na=False)]
-        
-        st.caption(f"📊 Показано: **{len(filtered_df):,}** из **{len(df):,}** записей")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 1: OVERVIEW (KPI + Auto Charts)
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[0]:
-        st.markdown("### 🏠 Обзор показателей")
-        
-        # KPI Cards
-        kpi_cols = st.columns(4)
-        numeric_metrics = num_cols[:4] if num_cols else []
-        
-        for i, metric in enumerate(numeric_metrics):
-            with kpi_cols[i]:
-                total = filtered_df[metric].sum()
-                avg = filtered_df[metric].mean()
-                count = len(filtered_df)
-                
-                # Trend calculation
-                if date_cols:
-                    date_col = date_cols[0]
-                    sorted_df = filtered_df.sort_values(date_col)
-                    half = len(sorted_df) // 2
-                    if half > 0:
-                        prev_half = sorted_df.iloc[:half][metric].sum()
-                        curr_half = sorted_df.iloc[half:][metric].sum()
-                        delta = ((curr_half - prev_half) / (abs(prev_half) + 1e-9)) * 100
-                    else:
-                        delta = 0
-                else:
-                    delta = 0
-                
-                st.metric(
-                    label=metric,
-                    value=f"{total:,.0f}",
-                    delta=f"{delta:+.1f}%" if delta != 0 else None,
-                    delta_color="normal"
-                )
-                
-                # Sparkline
-                if date_cols and len(filtered_df) > 5:
-                    date_col = date_cols[0]
-                    spark_data = filtered_df.groupby(pd.to_datetime(filtered_df[date_col]).dt.to_period('M'))[metric].sum()
-                    spark_fig = create_kpi_sparkline(spark_data, VIZRO_COLORS[i % len(VIZRO_COLORS)])
-                    st.plotly_chart(spark_fig, use_container_width=True, key=f"spark_{i}")
-        
-        st.divider()
-        
-        # Auto-generated charts
-        chart_row = st.columns(2)
-        
-        with chart_row[0]:
-            if date_cols and num_cols:
-                date_col = date_cols[0]
-                metric = num_cols[0]
-                monthly = filtered_df.groupby(pd.to_datetime(filtered_df[date_col]).dt.to_period('M').dt.strftime('%Y-%m'))[metric].sum().reset_index()
-                fig = px.area(monthly, x=date_col, y=metric, title=f"📈 Динамика {metric} по месяцам",
-                             color_discrete_sequence=[VIZRO_COLORS[0]])
-                fig.update_layout(height=350, template='plotly_white')
-                st.plotly_chart(fig, use_container_width=True)
-        
-        with chart_row[1]:
-            if cat_cols and num_cols:
-                cat_col = cat_cols[0]
-                metric = num_cols[0]
-                cat_data = filtered_df.groupby(cat_col)[metric].sum().nlargest(8).reset_index()
-                fig = px.pie(cat_data, names=cat_col, values=metric, title=f"🥧 Структура по {cat_col}",
-                            color_discrete_sequence=VIZRO_COLORS, hole=0.5)
-                fig.update_layout(height=350, template='plotly_white')
-                st.plotly_chart(fig, use_container_width=True)
-        
-        # Additional charts
-        if len(cat_cols) >= 2 and num_cols:
-            chart_row2 = st.columns(2)
-            with chart_row2[0]:
-                bar_data = filtered_df.groupby(cat_cols[1])[num_cols[0]].sum().nlargest(10).reset_index()
-                fig = px.bar(bar_data, x=cat_cols[1], y=num_cols[0], title=f"📊 Топ по {cat_cols[1]}",
-                            color_discrete_sequence=[VIZRO_COLORS[2]])
-                fig.update_layout(height=300, template='plotly_white', xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
-            
-            with chart_row2[1]:
-                metric2 = num_cols[1] if len(num_cols) > 1 else num_cols[0]
-                bar2_data = filtered_df.groupby(cat_cols[0])[metric2].sum().nlargest(10).reset_index()
-                fig = px.bar(bar2_data, x=cat_cols[0], y=metric2, title=f"{metric2} по {cat_cols[0]}",
-                            color_discrete_sequence=[VIZRO_COLORS[3]])
-                fig.update_layout(height=300, template='plotly_white', xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 2: CHART BUILDER
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[1]:
-        st.markdown("### 🛠 Конструктор графиков")
-        st.caption("Создавайте любые срезы данных: выбирайте оси, агрегации, группировки")
-        
-        # Initialize session state for charts
-        if 'charts' not in st.session_state:
-            st.session_state.charts = []
-        
-        # Add new chart button
-        if st.button("➕ Добавить график", type="primary"):
-            st.session_state.charts.append({
-                'id': len(st.session_state.charts),
-                'type': 'line',
-                'x': date_cols[0] if date_cols else df.columns[0],
-                'y': num_cols[0] if num_cols else df.columns[1],
-                'color': cat_cols[0] if len(cat_cols) > 1 else None,
-                'agg': 'sum',
-                'bucket': 'month'
-            })
-        
-        # Render charts
-        for i, chart in enumerate(st.session_state.charts):
-            with st.expander(f"📊 График #{i+1}", expanded=True):
-                config_col = st.columns(6)
-                
-                with config_col[0]:
-                    chart_type = st.selectbox(
-                        "Тип",
-                        ['line', 'bar', 'area', 'pie', 'scatter'],
-                        index=['line', 'bar', 'area', 'pie', 'scatter'].index(chart['type']),
-                        key=f"chart_{i}_type"
-                    )
-                    chart['type'] = chart_type
-                
-                with config_col[1]:
-                    x_col = st.selectbox("Ось X", df.columns.tolist(), index=df.columns.tolist().index(chart['x']) if chart['x'] in df.columns else 0, key=f"chart_{i}_x")
-                    chart['x'] = x_col
-                
-                with config_col[2]:
-                    y_col = st.selectbox("Метрика Y", num_cols, index=num_cols.index(chart['y']) if chart['y'] in num_cols else 0, key=f"chart_{i}_y")
-                    chart['y'] = y_col
-                
-                with config_col[3]:
-                    agg_func = st.selectbox("Агрегация", ['sum', 'avg', 'count', 'min', 'max'], index=['sum', 'avg', 'count', 'min', 'max'].index(chart['agg']), key=f"chart_{i}_agg")
-                    chart['agg'] = agg_func
-                
-                with config_col[4]:
-                    color_col = st.selectbox("Разбивка", [None] + cat_cols, index=([None] + cat_cols).index(chart['color']) if chart['color'] in [None] + cat_cols else 0, key=f"chart_{i}_color")
-                    chart['color'] = color_col if color_col else None
-                
-                with config_col[5]:
-                    bucket = st.selectbox("Период", ['day', 'week', 'month', 'quarter', 'year'], index=['day', 'week', 'month', 'quarter', 'year'].index(chart['bucket']), key=f"chart_{i}_bucket")
-                    chart['bucket'] = bucket
-                
-                # Create chart
-                title = f"{chart['y']} по {chart['x']}"
-                if chart['color']:
-                    title += f" (по {chart['color']})"
-                
-                fig = create_chart(filtered_df, chart['type'], chart['x'], chart['y'], 
-                                  chart['color'], chart['agg'], chart['bucket'], title)
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Delete button
-                if st.button("🗑 Удалить", key=f"del_chart_{i}"):
-                    st.session_state.charts.pop(i)
-                    st.rerun()
-        
-        if not st.session_state.charts:
-            st.info("Нажмите **➕ Добавить график** для создания визуализации")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 3: PIVOT TABLE
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[2]:
-        st.markdown("### 🧮 Сводная таблица")
-        
-        pivot_cols = st.columns(4)
-        
-        with pivot_cols[0]:
-            pivot_index = st.selectbox("📍 Строки", cat_cols, key="pivot_index")
-        
-        with pivot_cols[1]:
-            pivot_columns = st.selectbox("📍 Колонки", [None] + [c for c in cat_cols if c != pivot_index], key="pivot_columns")
-        
-        with pivot_cols[2]:
-            pivot_values = st.selectbox("📍 Значения", num_cols, key="pivot_values")
-        
-        with pivot_cols[3]:
-            pivot_agg = st.selectbox("📍 Агрегация", ['sum', 'mean', 'count', 'min', 'max'], key="pivot_agg")
-        
-        if pivot_index and pivot_values:
-            pivot_df = create_pivot_table(filtered_df, pivot_index, pivot_columns, pivot_values, pivot_agg)
-            st.dataframe(pivot_df.style.format('{:,.0f}'), use_container_width=True)
-            
-            # Heatmap visualization
-            if pivot_columns:
-                fig = px.imshow(pivot_df.iloc[:-1, :-1].T, 
-                               labels=dict(x=pivot_index, y=pivot_columns, color=pivot_values),
-                               color_continuous_scale='Blues',
-                               title=f"🔥 Тепловая карта: {pivot_values}")
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 4: TRENDS
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[3]:
-        st.markdown("### 📈 Анализ трендов")
-        
-        if not date_cols:
-            st.warning("⚠ В данных не найдены колонки с датами")
+    st.sidebar.caption("Фильтры сформированы по вашим столбцам")
+
+    for col in df.columns:
+        t = types.get(col, TXT)
+        s = df[col]
+        key = f"flt_{col}"
+
+        if t == NUM:
+            vals = to_num(s).dropna()
+            if vals.empty:
+                continue
+            lo, hi = float(vals.min()), float(vals.max())
+            if lo >= hi:
+                continue
+            step = max((hi - lo) / 100, 0.01)
+            sel = st.sidebar.slider(f"{TYPE_ICON[NUM]} {col}", lo, hi, (lo, hi), step=step, key=key)
+            if sel != (lo, hi):
+                mask &= to_num(s).between(*sel)
+                active.append(f"{col}: {fmt_num(sel[0])}–{fmt_num(sel[1])}")
+
+        elif t == DATE:
+            d = to_date(s).dropna()
+            if d.empty:
+                continue
+            mn, mx = d.min().date(), d.max().date()
+            if mn == mx:
+                continue
+            sel = st.sidebar.date_input(f"{TYPE_ICON[DATE]} {col}", (mn, mx),
+                                        min_value=mn, max_value=mx, key=key)
+            if isinstance(sel, (tuple, list)) and len(sel) == 2 and tuple(sel) != (mn, mx):
+                dd = to_date(s).dt.date
+                mask &= dd.between(sel[0], sel[1])
+                active.append(f"{col}: {sel[0]} → {sel[1]}")
+
         else:
-            date_col = date_cols[0]
-            filtered_df[date_col] = pd.to_datetime(filtered_df[date_col], errors='coerce')
-            
-            # Select metric
-            trend_metric = st.selectbox("Выберите метрику для анализа:", num_cols, index=0 if num_cols else 0)
-            
-            # Monthly aggregation
-            monthly = filtered_df.groupby(filtered_df[date_col].dt.to_period('M').dt.strftime('%Y-%m'))[trend_metric].agg(['sum', 'mean', 'count']).reset_index()
-            monthly.columns = ['Период', 'Сумма', 'Среднее', 'Количество']
-            
-            # Calculate growth
-            monthly['Рост %'] = monthly['Сумма'].pct_change() * 100
-            monthly['SMA 3'] = monthly['Сумма'].rolling(window=3).mean()
-            
-            # Main trend chart
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
-            fig.add_trace(go.Scatter(x=monthly['Период'], y=monthly['Сумма'], 
-                                    name='Сумма', line=dict(color=VIZRO_COLORS[0], width=3)),
-                         secondary_y=False)
-            fig.add_trace(go.Scatter(x=monthly['Период'], y=monthly['SMA 3'], 
-                                    name='Скользящее среднее (3)', line=dict(color=VIZRO_COLORS[1], width=2, dash='dash')),
-                         secondary_y=False)
-            fig.add_trace(go.Bar(x=monthly['Период'], y=monthly['Рост %'], 
-                                name='Рост %', marker_color=monthly['Рост %'].apply(lambda x: VIZRO_COLORS[2] if x >= 0 else VIZRO_COLORS[3])),
-                         secondary_y=True)
-            
-            fig.update_layout(
-                title=f"📈 Тренд {trend_metric} по месяцам",
-                height=450,
-                template='plotly_white',
-                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
-            )
-            fig.update_xaxes(title_text="Период")
-            fig.update_yaxes(title_text="Сумма", secondary_y=False)
-            fig.update_yaxes(title_text="Рост %", secondary_y=True)
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Stats
-            st.divider()
-            stats_cols = st.columns(4)
-            with stats_cols[0]:
-                st.metric("Всего периодов", len(monthly))
-            with stats_cols[1]:
-                st.metric("Средний рост", f"{monthly['Рост %'].mean():+.1f}%")
-            with stats_cols[2]:
-                st.metric("Макс. рост", f"{monthly['Рост %'].max():+.1f}%")
-            with stats_cols[3]:
-                st.metric("Мин. рост", f"{monthly['Рост %'].min():+.1f}%")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 5: ANOMALIES
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[4]:
-        st.markdown("### ⚠ Детекция аномалий")
-        st.caption("Поиск выбросов по правилу: отклонение > 2.5σ от среднего")
-        
-        if num_cols:
-            anomaly_col = st.selectbox("Выберите метрику для анализа:", num_cols)
-            threshold = st.slider("Порог (σ):", min_value=1.5, max_value=4.0, value=2.5, step=0.1)
-            
-            anomalies = detect_anomalies(filtered_df, anomaly_col, threshold)
-            
-            if len(anomalies) > 0:
-                st.success(f"✅ Найдено **{len(anomalies)}** аномальных записей")
-                
-                # Stats
-                mean_val = filtered_df[anomaly_col].mean()
-                std_val = filtered_df[anomaly_col].std()
-                st.caption(f"Среднее: {mean_val:,.0f} • Стд. отклонение: {std_val:,.0f} • Порог: {threshold * std_val:,.0f}")
-                
-                st.dataframe(anomalies.style.format('{:,.0f}').background_gradient(subset=[anomaly_col], cmap='Reds'), 
-                           use_container_width=True)
-                
-                # Distribution chart
-                fig = make_subplots(rows=1, cols=2, 
-                                   subplot_titles=('Распределение', 'Аномалии во времени'))
-                
-                fig.add_trace(go.Histogram(x=filtered_df[anomaly_col], name='Все данные', 
-                                          marker_color=VIZRO_COLORS[0], opacity=0.7),
-                            row=1, col=1)
-                fig.add_trace(go.Histogram(x=anomalies[anomaly_col], name='Аномалии', 
-                                          marker_color=VIZRO_COLORS[3], opacity=0.7),
-                            row=1, col=1)
-                
-                if date_cols:
-                    date_col = date_cols[0]
-                    fig.add_trace(go.Scatter(x=filtered_df[date_col], y=filtered_df[anomaly_col],
-                                            mode='markers', name='Все', marker=dict(size=4, color=VIZRO_COLORS[0])),
-                                 row=1, col=2)
-                    fig.add_trace(go.Scatter(x=anomalies[date_col], y=anomalies[anomaly_col],
-                                            mode='markers', name='Аномалии', marker=dict(size=8, color=VIZRO_COLORS[3])),
-                                 row=1, col=2)
-                
-                fig.update_layout(height=400, template='plotly_white', showlegend=True)
-                st.plotly_chart(fig, use_container_width=True)
+            uniq = s.dropna().astype(str)
+            uniq = uniq[uniq.str.strip() != ""].unique()
+            if len(uniq) <= 1:
+                continue
+            if len(uniq) <= 60:
+                sel = st.sidebar.multiselect(f"{TYPE_ICON[TXT]} {col}", sorted(uniq), key=key,
+                                             placeholder="все значения")
+                if sel:
+                    mask &= s.astype(str).isin(sel)
+                    active.append(f"{col}: {len(sel)} знач.")
             else:
-                st.info("✅ Аномалий не обнаружено при заданном пороге")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    #  TAB 6: DATA TABLE
-    # ═══════════════════════════════════════════════════════════════════════════
-    with tabs[5]:
-        st.markdown("### 📋 Таблица данных")
-        
-        # Sorting
-        sort_col = st.selectbox("Сортировать по:", ['—'] + df.columns.tolist())
-        sort_order = st.radio("Порядок:", ['⬆ По возрастанию', '⬇ По убыванию'], index=1)
-        
-        if sort_col != '—':
-            ascending = sort_order == '⬆ По возрастанию'
-            display_df = filtered_df.sort_values(sort_col, ascending=ascending)
+                q = st.sidebar.text_input(f"{TYPE_ICON[TXT]} {col} содержит", key=key,
+                                          placeholder=f"{len(uniq)} уникальных")
+                if q:
+                    mask &= s.astype(str).str.lower().str.contains(re.escape(q.lower()), na=False)
+                    active.append(f'{col} ~ "{q}"')
+
+    return df[mask], active
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  АГРЕГАЦИЯ (ДВИЖОК СВОДНЫХ ТАБЛИЦ)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def dim_series(df: pd.DataFrame, col: str, gran: str = "Месяц") -> pd.Series:
+    """Готовит измерение к группировке: даты сворачиваются до нужной гранулярности."""
+    if TYPES.get(col) == DATE:
+        d = to_date(df[col])
+        fmt = {"День": "%Y-%m-%d", "Неделя": "%Y-W%V", "Месяц": "%Y-%m",
+               "Квартал": None, "Год": "%Y"}[gran]
+        if gran == "Квартал":
+            return d.dt.year.astype("Int64").astype(str) + "-Q" + d.dt.quarter.astype("Int64").astype(str)
+        return d.dt.strftime(fmt).fillna("н/д")
+    return df[col].astype(str).replace({"": "н/д", "nan": "н/д"})
+
+
+def build_pivot(df: pd.DataFrame, row: str, col: str | None,
+                measure: str, agg_label: str, gran: str = "Месяц") -> pd.DataFrame:
+    """Сводная таблица: строки × колонки × агрегированная мера."""
+    if df.empty or not row or not measure:
+        return pd.DataFrame()
+
+    agg = AGGS[agg_label]
+    tmp = pd.DataFrame({"__row": dim_series(df, row, gran)})
+    values = to_num(df[measure]) if agg in NUMERIC_AGGS else df[measure]
+    tmp["__val"] = values.values
+
+    if col and col != "— нет —":
+        tmp["__col"] = dim_series(df, col, gran).values
+        out = tmp.groupby(["__row", "__col"])["__val"].agg(agg).unstack(fill_value=0)
+        out.columns = [str(c) for c in out.columns]
+    else:
+        out = tmp.groupby("__row")["__val"].agg(agg).to_frame(f"{agg_label} · {measure}")
+
+    out.index.name = row
+    return out.sort_index()
+
+
+def shape_pivot(pt: pd.DataFrame, top_n: int | None, sort_desc: bool) -> pd.DataFrame:
+    if pt.empty:
+        return pt
+    out = pt.copy()
+    if sort_desc:
+        out = out.loc[out.sum(axis=1).sort_values(ascending=False).index]
+    if top_n:
+        out = out.head(top_n)
+    return out
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  УНИВЕРСАЛЬНЫЙ ДВИЖОК ГРАФИКОВ
+# ──────────────────────────────────────────────────────────────────────────────
+
+def style_fig(fig, height: int = 420):
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Plus Jakarta Sans", size=12, color="#cbd5e1"),
+        margin=dict(l=10, r=10, t=36, b=10),
+        height=height,
+        colorway=PALETTE,
+        legend=dict(orientation="h", y=-0.18, font=dict(size=10)),
+        hoverlabel=dict(bgcolor="#141938", bordercolor="#a855f7", font_size=11),
+    )
+    fig.update_xaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
+    fig.update_yaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
+    return fig
+
+
+def render_chart(kind: str, pt: pd.DataFrame, raw: pd.DataFrame,
+                 row: str, measure: str, agg_label: str, height: int = 420):
+    """Строит любой график по сводной таблице pt (index = категории, columns = серии)."""
+    if kind in RAW_CHARTS:
+        if raw.empty:
+            st.info("Нет данных для построения.")
+            return
+        y = to_num(raw[measure]) if measure in raw.columns else None
+        plot_df = pd.DataFrame({row: raw[row].astype(str), measure: y}).dropna()
+        if kind == "Ящик с усами":
+            fig = px.box(plot_df, x=row, y=measure, color=row, points="outliers")
+        elif kind == "Скрипка":
+            fig = px.violin(plot_df, x=row, y=measure, color=row, box=True, points=False)
         else:
-            display_df = filtered_df
-        
-        # Show dataframe
-        st.dataframe(display_df.style.format('{:,.2f}'), use_container_width=True, height=500)
-        
-        # Export
-        st.divider()
-        st.markdown("#### 📥 Экспорт данных")
-        export_cols = st.columns(3)
-        
-        with export_cols[0]:
-            csv = display_df.to_csv(index=False, encoding='utf-8-sig')
-            st.download_button(
-                label="📄 Скачать CSV",
-                data=csv,
-                file_name=f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-        
-        with export_cols[1]:
-            json_str = display_df.to_json(orient='records', force_ascii=False, indent=2)
-            st.download_button(
-                label="📄 Скачать JSON",
-                data=json_str,
-                file_name=f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json",
-                use_container_width=True
-            )
-        
-        with export_cols[2]:
-            excel_buffer = io.BytesIO()
-            with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-                display_df.to_excel(writer, index=False, sheet_name='Data')
-            st.download_button(
-                label="📄 Скачать Excel",
-                data=excel_buffer.getvalue(),
-                file_name=f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-    
-    # ─── FOOTER ──────────────────────────────────────────────────────────────
+            fig = px.histogram(plot_df, x=measure, color=row, nbins=40, barmode="overlay", opacity=.75)
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(style_fig(fig, height), use_container_width=True)
+        return
+
+    if pt.empty:
+        st.info("Нет данных под текущими фильтрами.")
+        return
+
+    idx_name = pt.index.name or "Категория"
+    long = pt.reset_index().melt(id_vars=pt.index.name, var_name="Серия", value_name="Значение")
+    long = long.rename(columns={pt.index.name: idx_name})
+    multi = pt.shape[1] > 1
+    color = "Серия" if multi else None
+    totals = pt.sum(axis=1)
+
+    if kind == "Столбцы":
+        fig = px.bar(long, x=idx_name, y="Значение", color=color, barmode="group")
+    elif kind == "Столбцы горизонтальные":
+        fig = px.bar(long, y=idx_name, x="Значение", color=color, orientation="h", barmode="group")
+        fig.update_layout(yaxis=dict(categoryorder="total ascending"))
+    elif kind == "Столбцы с накоплением":
+        fig = px.bar(long, x=idx_name, y="Значение", color=color, barmode="stack")
+    elif kind == "Сгруппированные столбцы":
+        fig = px.bar(long, x=idx_name, y="Значение", color=color, barmode="group", text_auto=".2s")
+    elif kind == "Линия":
+        fig = px.line(long, x=idx_name, y="Значение", color=color, markers=True)
+    elif kind == "Область":
+        fig = px.area(long, x=idx_name, y="Значение", color=color)
+    elif kind in ("Круговая", "Кольцевая"):
+        fig = px.pie(totals.reset_index(), names=idx_name, values=0 if 0 in totals.reset_index().columns else totals.reset_index().columns[-1],
+                     hole=0.58 if kind == "Кольцевая" else 0)
+        fig.update_traces(textposition="inside", textinfo="percent+label")
+    elif kind == "Treemap":
+        d = totals.reset_index(); d.columns = [idx_name, "Значение"]
+        fig = px.treemap(d, path=[idx_name], values="Значение", color="Значение",
+                         color_continuous_scale="Purples")
+    elif kind == "Sunburst":
+        if multi:
+            fig = px.sunburst(long, path=[idx_name, "Серия"], values="Значение",
+                              color="Значение", color_continuous_scale="Purples")
+        else:
+            d = totals.reset_index(); d.columns = [idx_name, "Значение"]
+            fig = px.sunburst(d, path=[idx_name], values="Значение")
+    elif kind == "Радар":
+        fig = go.Figure()
+        for c in pt.columns:
+            fig.add_trace(go.Scatterpolar(r=pt[c].values, theta=[str(i) for i in pt.index],
+                                          fill="toself", name=str(c), opacity=.65))
+        fig.update_layout(polar=dict(bgcolor="rgba(255,255,255,.02)"))
+    elif kind == "Полярная":
+        d = totals.reset_index(); d.columns = [idx_name, "Значение"]
+        fig = px.bar_polar(d, r="Значение", theta=idx_name, color="Значение",
+                           color_continuous_scale="Plasma")
+    elif kind == "Точечная":
+        d = totals.reset_index(); d.columns = [idx_name, "Значение"]
+        fig = px.scatter(d, x=idx_name, y="Значение", color="Значение",
+                         size="Значение", color_continuous_scale="Plasma")
+    elif kind == "Пузырьковая":
+        d = totals.reset_index(); d.columns = [idx_name, "Значение"]
+        d["Ранг"] = d["Значение"].rank()
+        fig = px.scatter(d, x="Ранг", y="Значение", size="Значение", color=idx_name,
+                         hover_name=idx_name, size_max=55)
+    elif kind == "Воронка":
+        d = totals.sort_values(ascending=False).reset_index(); d.columns = [idx_name, "Значение"]
+        fig = px.funnel(d, y=idx_name, x="Значение")
+    elif kind == "Водопад":
+        fig = go.Figure(go.Waterfall(
+            x=[str(i) for i in pt.index], y=totals.values,
+            connector=dict(line=dict(color="rgba(168,85,247,.4)")),
+            increasing=dict(marker_color="#10b981"), decreasing=dict(marker_color="#f43f5e"),
+            totals=dict(marker_color="#a855f7")))
+    elif kind == "Тепловая карта":
+        fig = px.imshow(pt.values, x=[str(c) for c in pt.columns], y=[str(i) for i in pt.index],
+                        color_continuous_scale="Purples", aspect="auto", text_auto=".2s")
+    elif kind == "Индикатор KPI":
+        total = float(totals.sum())
+        fig = go.Figure(go.Indicator(
+            mode="number+gauge", value=total,
+            number={"font": {"size": 44, "color": "#fff"}},
+            gauge={"axis": {"range": [0, max(total, 1) * 1.15]},
+                   "bar": {"color": "#a855f7"},
+                   "bgcolor": "rgba(255,255,255,.05)"},
+            title={"text": f"{agg_label} · {measure}", "font": {"size": 13, "color": "#94a3b8"}}))
+    else:  # Сводная таблица
+        show = pt.copy()
+        show["ИТОГО"] = show.sum(axis=1)
+        st.dataframe(
+            show.style.format(lambda v: fmt_num(v))
+                .background_gradient(cmap="Purples", axis=None,
+                                     subset=pd.IndexSlice[:, [c for c in show.columns if c != "ИТОГО"]]),
+            use_container_width=True, height=height)
+        return
+
+    st.plotly_chart(style_fig(fig, height), use_container_width=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  SIDEBAR
+# ──────────────────────────────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.markdown('<div class="brand">◆ ADAPTIVE BI</div>', unsafe_allow_html=True)
+    st.caption("Любые таблицы · Любые отчёты")
+
+    st.markdown(
+        f'<div class="card" style="padding:12px 14px">'
+        f'<div style="font-size:.72rem;color:#94a3b8">ИСТОЧНИК</div>'
+        f'<div style="font-size:.8rem;font-weight:700;color:#fff">{st.session_state.source}</div>'
+        f'<div style="font-size:.7rem;color:#94a3b8;margin-top:4px">'
+        f'Строк: <b style="color:#c084fc">{len(DF):,}</b> · '
+        f'Столбцов: <b style="color:#22d3ee">{DF.shape[1]}</b></div></div>'.replace(",", " "),
+        unsafe_allow_html=True)
+
+    chips = "".join(
+        f'<span class="chip {TYPE_CHIP[TYPES.get(c, TXT)]}">{TYPE_ICON[TYPES.get(c, TXT)]} {c}</span>'
+        for c in list(DF.columns)[:10])
+    st.markdown(f'<div style="margin:10px 0">{chips}</div>', unsafe_allow_html=True)
+
     st.divider()
-    st.markdown("""
-    <div style="text-align: center; color: #64748b; font-size: 12px; padding: 20px 0;">
-        <strong>BI Platform</strong> • 
-        {rows:,} записей • {cols} колонок • {num} числовых • {dates} дат • {cats} категорий •
-        Вдохновлено <a href="https://github.com/mckinsey/vizro" target="_blank">Vizro-AI</a>
-    </div>
-    """.format(
-        rows=len(df), 
-        cols=len(df.columns), 
-        num=len(num_cols), 
-        dates=len(date_cols), 
-        cats=len(cat_cols)
-    ), unsafe_allow_html=True)
+    if st.button("🔄 Сбросить все фильтры", use_container_width=True):
+        for k in [k for k in st.session_state if k.startswith("flt_")]:
+            del st.session_state[k]
+        st.rerun()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  RUN APP
-# ═══════════════════════════════════════════════════════════════════════════════
+    FDF, ACTIVE = render_smart_filters(DF, TYPES)
 
-if __name__ == "__main__":
-    main()
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ШАПКА
+# ──────────────────────────────────────────────────────────────────────────────
+
+head_l, head_r = st.columns([3, 1])
+with head_l:
+    st.markdown("# Аналитика любых данных")
+    st.markdown(
+        f'<div class="hint">Отфильтровано <b style="color:#c084fc">{len(FDF):,}</b> из '
+        f'<b>{len(DF):,}</b> строк'.replace(",", " ") +
+        (f' · Активно фильтров: <b style="color:#22d3ee">{len(ACTIVE)}</b>' if ACTIVE else "") +
+        "</div>", unsafe_allow_html=True)
+with head_r:
+    st.download_button("⬇️ Выгрузить в Excel", to_excel_bytes(FDF),
+                       file_name=f"export_{date.today()}.xlsx", use_container_width=True)
+
+if ACTIVE:
+    st.markdown("".join(f'<span class="chip chip-num">🔎 {a}</span>' for a in ACTIVE),
+                unsafe_allow_html=True)
+
+tab_over, tab_build, tab_dash, tab_pivot, tab_data, tab_import = st.tabs(
+    ["📈 Обзор", "🪄 Конструктор отчётов", "🗂 Мои дашборды", "🧮 Сводные срезы", "📋 Данные", "⬆️ Импорт"])
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 1 — АВТО-ОБЗОР
+# ──────────────────────────────────────────────────────────────────────────────
+
+with tab_over:
+    if not cols_num:
+        st.warning("В данных нет числовых столбцов — загрузите таблицу с числами для KPI.")
+    else:
+        st.subheader("Автоматические показатели")
+        kpi_cols = st.columns(min(4, len(cols_num)))
+        for i, c in enumerate(cols_num[:4]):
+            v = to_num(FDF[c])
+            total, avg = v.sum(), v.mean() if len(v) else 0
+            base = to_num(DF[c]).sum()
+            delta = (total - base) / base * 100 if base else 0
+            with kpi_cols[i]:
+                st.metric(c, fmt_num(total),
+                          delta=f"{delta:+.1f}% от всего" if abs(delta) > 0.01 else "весь объём")
+                st.caption(f"Среднее: **{fmt_num(avg)}** · строк: {len(v):,}".replace(",", " "))
+
+        st.divider()
+        c1, c2 = st.columns([2, 1])
+
+        with c1:
+            st.markdown("##### Динамика")
+            o1, o2, o3 = st.columns(3)
+            dim = o1.selectbox("Разрез", cols_dim or list(DF.columns), key="ov_dim",
+                               index=0 if not cols_date else list(cols_dim).index(cols_date[0]))
+            meas = o2.selectbox("Показатель", cols_num, key="ov_meas",
+                                index=cols_num.index(PRIMARY) if PRIMARY in cols_num else 0)
+            gran = o3.selectbox("Гранулярность", ["День", "Неделя", "Месяц", "Квартал", "Год"],
+                                index=2, key="ov_gran")
+            pt = build_pivot(FDF, dim, None, meas, "Сумма", gran)
+            kind = "Область" if TYPES.get(dim) == DATE else "Столбцы"
+            render_chart(kind, pt, FDF, dim, meas, "Сумма", height=340)
+
+        with c2:
+            st.markdown("##### Структура")
+            pdim = st.selectbox("Измерение", cols_txt or cols_dim, key="ov_pdim")
+            ppt = shape_pivot(build_pivot(FDF, pdim, None, meas, "Сумма"), 10, True)
+            render_chart("Кольцевая", ppt, FDF, pdim, meas, "Сумма", height=300)
+
+        st.divider()
+        st.markdown("##### 💡 Авто-инсайты по вашим данным")
+        i1, i2, i3 = st.columns(3)
+        if not ppt.empty:
+            top_name = str(ppt.index[0])
+            top_val = float(ppt.iloc[0].sum())
+            share = top_val / float(ppt.values.sum()) * 100 if ppt.values.sum() else 0
+            i1.markdown(f'<div class="card"><b style="color:#c084fc">Лидер по «{pdim}»</b><br>'
+                        f'{top_name} — {fmt_num(top_val)} ({share:.1f}% от топ-10)</div>',
+                        unsafe_allow_html=True)
+        if not pt.empty and len(pt) >= 2:
+            last, prev = float(pt.iloc[-1].sum()), float(pt.iloc[-2].sum())
+            growth = (last - prev) / prev * 100 if prev else 0
+            arrow = "▲" if growth >= 0 else "▼"
+            color = "#6ee7b7" if growth >= 0 else "#fda4af"
+            i2.markdown(f'<div class="card"><b style="color:#22d3ee">Последний период</b><br>'
+                        f'{pt.index[-1]}: {fmt_num(last)} '
+                        f'<span style="color:{color}">{arrow} {abs(growth):.1f}%</span></div>',
+                        unsafe_allow_html=True)
+        i3.markdown(f'<div class="card"><b style="color:#6ee7b7">Структура таблицы</b><br>'
+                    f'{len(cols_num)} числовых · {len(cols_date)} дат · {len(cols_txt)} текстовых</div>',
+                    unsafe_allow_html=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 2 — КОНСТРУКТОР
+# ──────────────────────────────────────────────────────────────────────────────
+
+with tab_build:
+    st.subheader("Конструктор отчётов — как сводная таблица, но с любым графиком")
+    st.caption("Выберите столбцы для группировки и показатель. Приложение построит любую визуализацию.")
+
+    left, right = st.columns([1, 2])
+
+    with left:
+        title = st.text_input("Название отчёта", key="b_title",
+                              placeholder="например: Выручка по городам")
+        row = st.selectbox("Группировать по (строки)", cols_dim or list(DF.columns), key="b_row")
+        col2 = st.selectbox("Разбить по (колонки)", ["— нет —"] + [c for c in cols_dim if c != row],
+                            key="b_col")
+        agg_label = st.selectbox("Агрегация", list(AGGS.keys()), key="b_agg")
+        meas_pool = cols_num if AGGS[agg_label] in NUMERIC_AGGS else list(DF.columns)
+        meas = st.selectbox("Показатель (мера)", meas_pool or list(DF.columns), key="b_meas",
+                            index=meas_pool.index(PRIMARY) if PRIMARY in meas_pool else 0)
+        kind = st.selectbox("Тип визуализации", CHARTS, key="b_kind")
+
+        gran = "Месяц"
+        if TYPES.get(row) == DATE or TYPES.get(col2) == DATE:
+            gran = st.selectbox("Гранулярность дат", ["День", "Неделя", "Месяц", "Квартал", "Год"],
+                                index=2, key="b_gran")
+        cc1, cc2 = st.columns(2)
+        sort_desc = cc1.checkbox("Сортировать", True, key="b_sort")
+        use_top = cc2.checkbox("Только топ-15", False, key="b_top")
+
+        if st.button("➕ Сохранить на дашборд", type="primary", use_container_width=True):
+            st.session_state.reports.append(dict(
+                title=title or f"{agg_label} {meas} по {row}", row=row, col=col2, meas=meas,
+                agg=agg_label, kind=kind, gran=gran, sort=sort_desc, top=use_top))
+            st.success("Отчёт добавлен во вкладку «Мои дашборды»")
+
+    with right:
+        pt = shape_pivot(build_pivot(FDF, row, col2, meas, agg_label, gran),
+                         15 if use_top else None, sort_desc)
+        st.caption(f"Категорий: **{len(pt)}** · Серий: **{pt.shape[1] if not pt.empty else 0}** · "
+                   f"{agg_label} по «{meas}»")
+        render_chart(kind, pt, FDF, row, meas, agg_label, height=430)
+        if not pt.empty and kind != "Сводная таблица":
+            with st.expander("Показать таблицу с числами"):
+                show = pt.copy(); show["ИТОГО"] = show.sum(axis=1)
+                st.dataframe(show.style.format(lambda v: fmt_num(v)), use_container_width=True)
+
+    st.divider()
+    st.markdown("##### ⚡ Идеи отчётов по вашим столбцам")
+    ideas = []
+    if cols_date and cols_num:
+        ideas.append((f"Динамика «{cols_num[0]}»", cols_date[0], cols_num[0], "Область"))
+    for d in cols_txt[:3]:
+        ideas.append((f"Рейтинг: {d}", d, PRIMARY or cols_num[0] if cols_num else DF.columns[0],
+                      "Столбцы горизонтальные"))
+    if len(cols_txt) >= 2 and cols_num:
+        ideas.append((f"{cols_txt[0]} × {cols_txt[1]}", cols_txt[0], cols_num[0], "Тепловая карта"))
+    if cols_txt and cols_num:
+        ideas.append((f"Структура «{cols_txt[0]}»", cols_txt[0], cols_num[0], "Treemap"))
+
+    icols = st.columns(min(4, max(len(ideas), 1)))
+    for i, (t, d, m, k) in enumerate(ideas[:4]):
+        with icols[i]:
+            st.markdown(f'<div class="card"><b>{t}</b><br><span class="hint">{k} · {m}</span></div>',
+                        unsafe_allow_html=True)
+            if st.button("Построить", key=f"idea_{i}", use_container_width=True):
+                st.session_state.reports.append(dict(title=t, row=d, col="— нет —", meas=m,
+                                                     agg="Сумма", kind=k, gran="Месяц",
+                                                     sort=True, top=True))
+                st.success("Добавлено в «Мои дашборды»")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 3 — ДАШБОРДЫ
+# ──────────────────────────────────────────────────────────────────────────────
+
+with tab_dash:
+    st.subheader("Мои дашборды")
+    reports = st.session_state.reports
+    if not reports:
+        st.info("Пока пусто. Соберите отчёт в «Конструкторе» и сохраните его сюда — "
+                "все карточки реагируют на фильтры слева.")
+    else:
+        c1, c2 = st.columns([3, 1])
+        c1.caption(f"Сохранено отчётов: **{len(reports)}** · все реагируют на текущие фильтры")
+        if c2.button("🗑 Очистить всё", use_container_width=True):
+            st.session_state.reports = []
+            st.rerun()
+
+        for start in range(0, len(reports), 2):
+            row_cols = st.columns(2)
+            for j, rep in enumerate(reports[start:start + 2]):
+                idx = start + j
+                with row_cols[j]:
+                    with st.container(border=True):
+                        h1, h2 = st.columns([5, 1])
+                        h1.markdown(f"**{rep['title']}**")
+                        h1.caption(f"{rep['row']} × {rep['col']} · {rep['agg']} {rep['meas']} · {rep['kind']}")
+                        if h2.button("✕", key=f"del_{idx}"):
+                            st.session_state.reports.pop(idx)
+                            st.rerun()
+                        p = shape_pivot(
+                            build_pivot(FDF, rep["row"], rep["col"], rep["meas"], rep["agg"], rep["gran"]),
+                            15 if rep["top"] else None, rep["sort"])
+                        render_chart(rep["kind"], p, FDF, rep["row"], rep["meas"], rep["agg"], height=300)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 4 — СВОДНЫЕ СРЕЗЫ
+# ──────────────────────────────────────────────────────────────────────────────
+
+with tab_pivot:
+    st.subheader("Сводные срезы по любым полям")
+    p1, p2, p3, p4, p5 = st.columns(5)
+    prow = p1.selectbox("Строки", cols_dim or list(DF.columns), key="p_row")
+    pcol = p2.selectbox("Колонки", ["— нет —"] + [c for c in cols_dim if c != prow], key="p_col")
+    pagg = p3.selectbox("Агрегация", list(AGGS.keys()), key="p_agg")
+    pmeas_pool = cols_num if AGGS[pagg] in NUMERIC_AGGS else list(DF.columns)
+    pmeas = p4.selectbox("Мера", pmeas_pool or list(DF.columns), key="p_meas")
+    pgran = p5.selectbox("Даты", ["День", "Неделя", "Месяц", "Квартал", "Год"], index=2, key="p_gran")
+
+    o1, o2, o3 = st.columns([1, 1, 2])
+    transpose = o1.checkbox("Транспонировать", key="p_tr")
+    heat = o2.checkbox("Тепловая заливка", True, key="p_heat")
+
+    pv = build_pivot(FDF, prow, pcol, pmeas, pagg, pgran)
+    if transpose and not pv.empty:
+        pv = pv.T
+        pv.index.name = pcol if pcol != "— нет —" else "Показатель"
+
+    if pv.empty:
+        st.info("Нет данных под текущими фильтрами.")
+    else:
+        table = pv.copy()
+        table["ИТОГО"] = table.sum(axis=1)
+        total_row = pd.DataFrame(table.sum(axis=0)).T
+        total_row.index = ["ИТОГО"]
+        table = pd.concat([table, total_row])
+
+        styler = table.style.format(lambda v: fmt_num(v))
+        if heat:
+            data_cols = [c for c in table.columns if c != "ИТОГО"]
+            styler = styler.background_gradient(cmap="Purples", axis=None,
+                                                subset=pd.IndexSlice[table.index[:-1], data_cols])
+        st.dataframe(styler, use_container_width=True, height=460)
+
+        o3.download_button("⬇️ Скачать срез в Excel", to_excel_bytes(table.reset_index(), "Срез"),
+                           file_name=f"pivot_{date.today()}.xlsx", use_container_width=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 5 — ДАННЫЕ И СТОЛБЦЫ
+# ──────────────────────────────────────────────────────────────────────────────
+
+with tab_data:
+    st.subheader("Данные и управление столбцами")
+
+    with st.expander("✏️ Свои названия столбцов и типы", expanded=False):
+        st.caption("Переименуйте столбцы как удобно вам — изменения применятся ко всем отчётам.")
+        cfg = pd.DataFrame({
+            "Столбец": list(DF.columns),
+            "Новое название": list(DF.columns),
+            "Тип": [TYPES.get(c, TXT) for c in DF.columns],
+            "Оставить": [True] * DF.shape[1],
+            "Пример": [str(DF[c].dropna().iloc[0])[:40] if DF[c].notna().any() else "" for c in DF.columns],
+            "Пусто %": [round(float(DF[c].isna().mean() * 100), 1) for c in DF.columns],
+        })
+        edited = st.data_editor(
+            cfg, hide_index=True, use_container_width=True, key="col_editor",
+            column_config={
+                "Столбец": st.column_config.TextColumn(disabled=True),
+                "Тип": st.column_config.SelectboxColumn(options=[NUM, DATE, TXT], required=True),
+                "Пример": st.column_config.TextColumn(disabled=True),
+                "Пусто %": st.column_config.NumberColumn(disabled=True, format="%.1f%%"),
+            })
+
+        b1, b2 = st.columns(2)
+        if b1.button("💾 Применить изменения", type="primary", use_container_width=True):
+            keep = edited[edited["Оставить"]]
+            new_df = DF[keep["Столбец"].tolist()].copy()
+            rename = dict(zip(keep["Столбец"], keep["Новое название"]))
+            new_df = new_df.rename(columns=rename)
+            new_types = {rename[r["Столбец"]]: r["Тип"] for _, r in keep.iterrows()}
+            st.session_state.df = coerce_types(new_df, new_types)
+            st.session_state.types = new_types
+            st.success("Структура обновлена")
+            st.rerun()
+        if b2.button("🔍 Определить типы заново", use_container_width=True):
+            st.session_state.types = detect_schema(DF)
+            st.rerun()
+
+    with st.expander("➕ Добавить новый столбец"):
+        n1, n2, n3 = st.columns([2, 1, 1])
+        new_name = n1.text_input("Название", key="new_col_name")
+        new_type = n2.selectbox("Тип", [TXT, NUM, DATE], key="new_col_type")
+        if n3.button("Добавить", use_container_width=True) and new_name:
+            if new_name in DF.columns:
+                st.error("Столбец с таким именем уже есть")
+            else:
+                df2 = DF.copy()
+                df2[new_name] = np.nan if new_type == NUM else ""
+                st.session_state.df = df2
+                st.session_state.types = {**TYPES, new_name: new_type}
+                st.rerun()
+
+    st.markdown("##### Таблица (редактируемая)")
+    st.caption("Меняйте значения прямо в ячейках, добавляйте и удаляйте строки — всё пересчитается.")
+    edited_df = st.data_editor(FDF, use_container_width=True, num_rows="dynamic",
+                               height=460, key="data_editor")
+    d1, d2 = st.columns(2)
+    if d1.button("💾 Сохранить правки данных", type="primary", use_container_width=True):
+        base = DF.copy()
+        base.loc[edited_df.index] = edited_df
+        extra = edited_df[~edited_df.index.isin(base.index)]
+        st.session_state.df = coerce_types(pd.concat([base, extra]), TYPES)
+        st.success("Данные обновлены")
+        st.rerun()
+    d2.download_button("⬇️ Скачать текущую выборку", to_excel_bytes(FDF),
+                       file_name=f"data_{date.today()}.xlsx", use_container_width=True)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ВКЛАДКА 6 — ИМПОРТ
+# ──────────────────────────────────────────────────────────────────────────────
+
+def stage(df: pd.DataFrame, name: str):
+    """Отправляет загруженную таблицу в предпросмотр."""
+    df = df.dropna(axis=1, how="all")
+    df.columns = [str(c).strip() or f"Колонка {i+1}" for i, c in enumerate(df.columns)]
+    st.session_state.pending = df
+    st.session_state.pending_name = name
+    st.session_state.pending_cfg = None
+
+
+with tab_import:
+    st.subheader("Импорт данных — любой источник")
+
+    src = st.radio("Источник", ["Файл", "Google Sheets", "Ссылка", "Вставить текст", "Демо"],
+                   horizontal=True, key="imp_src")
+
+    o1, o2, o3 = st.columns(3)
+    has_header = o1.checkbox("Первая строка — заголовки", True, key="imp_head")
+    delim = o2.selectbox("Разделитель", ["Авто", ";", ",", "Tab", "|"], key="imp_delim")
+    enc = o3.selectbox("Кодировка", ["Авто", "utf-8", "windows-1251"], key="imp_enc")
+    delim_map = {"Авто": None, ";": ";", ",": ",", "Tab": "\t", "|": "|"}
+
+    def read_text(raw: bytes) -> str:
+        if enc != "Авто":
+            return raw.decode(enc, errors="replace")
+        for e in ("utf-8", "windows-1251", "cp1252"):
+            try:
+                txt = raw.decode(e)
+                if txt.count("\ufffd") < 3:
+                    return txt
+            except Exception:
+                continue
+        return raw.decode("utf-8", errors="replace")
+
+    def parse_text(txt: str, name: str):
+        stripped = txt.strip()
+        if stripped.startswith(("[", "{")):
+            data = json.loads(stripped)
+            if isinstance(data, dict):
+                arr = next((v for v in data.values() if isinstance(v, list)), [data])
+                data = arr
+            stage(pd.json_normalize(data), name)
+            return
+        stage(pd.read_csv(io.StringIO(txt), sep=delim_map[delim], engine="python",
+                          header=0 if has_header else None), name)
+
+    if src == "Файл":
+        up = st.file_uploader("Excel / CSV / TSV / JSON", type=["xlsx", "xls", "csv", "tsv", "txt", "json"])
+        if up:
+            try:
+                if up.name.lower().endswith((".xlsx", ".xls")):
+                    xls = pd.ExcelFile(up)
+                    sheet = st.selectbox("Лист книги", xls.sheet_names, key="imp_sheet")
+                    if st.button("Загрузить лист", type="primary"):
+                        stage(pd.read_excel(xls, sheet_name=sheet,
+                                            header=0 if has_header else None), f"{up.name} · {sheet}")
+                else:
+                    parse_text(read_text(up.getvalue()), up.name)
+            except Exception as e:
+                st.error(f"Ошибка чтения: {e}")
+
+    elif src == "Google Sheets":
+        url = st.text_input("Ссылка на таблицу с доступом «по ссылке»",
+                            placeholder="https://docs.google.com/spreadsheets/d/...")
+        if st.button("Загрузить из Google Sheets", type="primary") and url:
+            m = re.search(r"/d/([a-zA-Z0-9-_]+)", url)
+            if not m:
+                st.error("Не удалось распознать ID таблицы")
+            else:
+                gid = re.search(r"[#&?]gid=(\d+)", url)
+                csv_url = f"https://docs.google.com/spreadsheets/d/{m.group(1)}/gviz/tq?tqx=out:csv"
+                if gid:
+                    csv_url += f"&gid={gid.group(1)}"
+                try:
+                    stage(pd.read_csv(csv_url), "Google Sheets")
+                except Exception as e:
+                    st.error(f"Не удалось загрузить: {e}")
+
+    elif src == "Ссылка":
+        url = st.text_input("Прямая ссылка на CSV / JSON")
+        if st.button("Скачать и распознать", type="primary") and url:
+            try:
+                stage(pd.read_json(url) if url.lower().endswith(".json") else pd.read_csv(url),
+                      f"URL · {url.split('/')[-1]}")
+            except Exception as e:
+                st.error(f"Ошибка загрузки: {e}")
+
+    elif src == "Вставить текст":
+        txt = st.text_area("Скопируйте диапазон из Excel (Ctrl+C) и вставьте сюда", height=200,
+                           placeholder="Дата\tГород\tВыручка\n2024-01-01\tМосква\t150000")
+        if st.button("Распознать вставленное", type="primary") and txt.strip():
+            try:
+                sep = delim_map[delim] or ("\t" if "\t" in txt else None)
+                stage(pd.read_csv(io.StringIO(txt), sep=sep, engine="python",
+                                  header=0 if has_header else None), "Буфер обмена")
+            except Exception as e:
+                st.error(f"Не удалось распознать: {e}")
+
+    else:
+        n = st.slider("Строк в демо-наборе", 100, 2000, 400, 100)
+        if st.button("Загрузить демо-данные", type="primary"):
+            stage(make_demo(n), f"Демо-набор ({n} строк)")
+
+    # ── Предпросмотр и выбор столбцов ────────────────────────────────────────
+    pend = st.session_state.pending
+    if pend is not None:
+        st.divider()
+        st.markdown(f"#### Предпросмотр · {st.session_state.pending_name}")
+        st.caption(f"Найдено {len(pend):,} строк и {pend.shape[1]} столбцов. "
+                   "Отметьте нужные, задайте свои названия и типы.".replace(",", " "))
+
+        auto = detect_schema(pend)
+        cfg = pd.DataFrame({
+            "Использовать": [True] * pend.shape[1],
+            "Столбец": list(pend.columns),
+            "Новое название": list(pend.columns),
+            "Тип": [auto[c] for c in pend.columns],
+            "Пример": [str(pend[c].dropna().iloc[0])[:40] if pend[c].notna().any() else "" for c in pend.columns],
+            "Пусто %": [round(float(pend[c].isna().mean() * 100), 1) for c in pend.columns],
+            "Уникальных": [int(pend[c].nunique()) for c in pend.columns],
+        })
+        cfg_edit = st.data_editor(
+            cfg, hide_index=True, use_container_width=True, key="prev_cfg",
+            column_config={
+                "Столбец": st.column_config.TextColumn(disabled=True),
+                "Тип": st.column_config.SelectboxColumn(options=[NUM, DATE, TXT], required=True),
+                "Пример": st.column_config.TextColumn(disabled=True),
+                "Пусто %": st.column_config.NumberColumn(disabled=True, format="%.1f%%"),
+                "Уникальных": st.column_config.NumberColumn(disabled=True),
+            })
+
+        sel = cfg_edit[cfg_edit["Использовать"]]
+        if not sel.empty:
+            st.dataframe(pend[sel["Столбец"].tolist()].head(20), use_container_width=True, height=280)
+
+        a1, a2 = st.columns(2)
+        if a1.button("🚀 Применить и перестроить аналитику", type="primary", use_container_width=True):
+            if sel.empty:
+                st.error("Выберите хотя бы один столбец")
+            else:
+                new_df = pend[sel["Столбец"].tolist()].copy()
+                rename = dict(zip(sel["Столбец"], sel["Новое название"]))
+                new_df = new_df.rename(columns=rename)
+                new_types = {rename[r["Столбец"]]: r["Тип"] for _, r in sel.iterrows()}
+                st.session_state.df = coerce_types(new_df, new_types)
+                st.session_state.types = new_types
+                st.session_state.source = st.session_state.pending_name
+                st.session_state.pending = None
+                for k in [k for k in st.session_state if k.startswith("flt_")]:
+                    del st.session_state[k]
+                st.success("Данные загружены — фильтры и отчёты перестроены")
+                st.rerun()
+        if a2.button("Отмена", use_container_width=True):
+            st.session_state.pending = None
+            st.rerun()
