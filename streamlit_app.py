@@ -42,104 +42,184 @@ PALETTE = [
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
-html, body, [class*="css"] { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+/* === базовый цвет текста — более светлый, чем был === */
+html, body, [class*="css"], p, span, label, div, small, code { color: #e8eaf6; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; }
+
 [data-testid="stAppViewContainer"] {
   background:
-    radial-gradient(1000px 540px at 88% -12%, rgba(124,58,237,.14), transparent 62%),
-    radial-gradient(760px 460px at -12% 112%, rgba(6,182,212,.10), transparent 60%),
-    #0b0f22;
+    radial-gradient(1100px 600px at 88% -12%, rgba(124,58,237,.22), transparent 62%),
+    radial-gradient(820px 520px at -12% 112%, rgba(6,182,212,.18), transparent 60%),
+    #050816;
   color: #f1f5f9;
 }
-[data-testid="stAppViewContainer"] p, [data-testid="stAppViewContainer"] span,
-[data-testid="stAppViewContainer"] label, [data-testid="stAppViewContainer"] li {
-  color: #e8edf7;
+[data-testid="stHeader"] { background: rgba(5,8,22,.85); backdrop-filter: blur(12px); }
+[data-testid="stMain"] { color: #f1f5f9; }
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #0a0d22 0%, #07091a 100%);
+  border-right: 1px solid rgba(168,85,247,.18);
 }
-[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] * ,
-.stCaption, small { color: #b6c2d9 !important; }
-[data-testid="stHeader"] { background: rgba(11,15,34,.85); backdrop-filter: blur(10px); }
-[data-testid="stSidebar"] { background: #0e1227; border-right: 1px solid rgba(255,255,255,.1); }
-[data-testid="stSidebar"] * { color: #e8edf7; }
-[data-testid="stSidebar"] [data-testid="stCaptionContainer"] * { color: #aab8d0 !important; }
-[data-testid="stSidebar"] label { color: #f1f5f9 !important; font-weight: 600; }
-h1, h2, h3 { font-family: 'Unbounded', sans-serif !important; letter-spacing: -.01em; color: #ffffff !important; }
-h1 { font-size: 1.7rem !important; }
-h2 { font-size: 1.25rem !important; }
-h3 { font-size: 1.02rem !important; }
-h4, h5, h6 { color: #ffffff !important; }
-.stMarkdown, .stMarkdown p { color: #e8edf7; }
-[data-testid="stWidgetLabel"] p { color: #dbe4f3 !important; font-weight: 600; }
-.stSelectbox label, .stMultiSelect label, .stTextInput label,
-.stSlider label, .stDateInput label, .stCheckbox label span { color: #e8edf7 !important; }
-[data-testid="stRadio"] label p { color: #e8edf7 !important; }
-[data-baseweb="tag"] { background: rgba(168,85,247,.3) !important; }
-[data-baseweb="tag"] span { color: #fff !important; }
-div[data-testid="stExpander"] summary p { color: #f1f5f9 !important; font-weight: 700; }
-[data-testid="stAlert"] p { color: #f1f5f9 !important; }
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p, [data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label, [data-testid="stSidebar"] small {
+  color: #d8dceb !important;
+}
+
+/* === заголовки === */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Unbounded', sans-serif !important;
+  letter-spacing: -.01em; color: #ffffff !important;
+}
+h1 { font-size: 1.75rem !important; font-weight: 800 !important; }
+h2 { font-size: 1.3rem  !important; font-weight: 800 !important; }
+h3 { font-size: 1.05rem !important; font-weight: 700 !important; }
+.subtitle { color: #c4c8e0; font-size: .9rem; margin-top: -8px; margin-bottom: 18px; }
+
+/* === KPI === */
 [data-testid="stMetric"] {
-  background: linear-gradient(135deg, rgba(25,31,58,.9), rgba(15,18,35,.95));
-  border: 1px solid rgba(255,255,255,.09);
-  border-radius: 16px; padding: 16px 18px;
-  box-shadow: 0 12px 30px -14px rgba(0,0,0,.8);
+  background: linear-gradient(135deg, rgba(28,34,72,.95), rgba(15,18,38,.95));
+  border: 1px solid rgba(168,85,247,.25);
+  border-radius: 18px; padding: 18px 20px;
+  box-shadow: 0 16px 36px -16px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.07);
 }
 [data-testid="stMetricLabel"] {
-  color: #c3cfe3 !important; font-size: .72rem !important;
-  text-transform: uppercase; letter-spacing: .09em; font-weight: 700;
+  color: #c4c8e0 !important; font-size: .75rem !important;
+  text-transform: uppercase; letter-spacing: .1em; font-weight: 700 !important;
 }
-[data-testid="stMetricLabel"] p { color: #c3cfe3 !important; }
 [data-testid="stMetricValue"] {
   font-family: 'JetBrains Mono', monospace !important;
-  font-size: 1.5rem !important; color: #ffffff !important;
+  font-size: 1.55rem !important; color: #ffffff !important; font-weight: 700 !important;
 }
-[data-testid="stMetricDelta"] { font-weight: 700; }
-.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid rgba(255,255,255,.08); }
+[data-testid="stMetricDelta"] { color: #6ee7b7 !important; font-weight: 600 !important; }
+[data-testid="stCaptionContainer"] { color: #c4c8e0 !important; }
+.stCaption, [data-testid="stCaptionContainer"] p { color: #c4c8e0 !important; }
+
+/* === табы === */
+.stTabs [data-baseweb="tab-list"] { gap: 4px; border-bottom: 1px solid rgba(255,255,255,.12); }
 .stTabs [data-baseweb="tab"] {
-  background: transparent; border-radius: 10px 10px 0 0;
-  padding: 8px 16px; font-size: .82rem; font-weight: 700; color: #c3cfe3;
+  background: rgba(255,255,255,.03); border-radius: 12px 12px 0 0;
+  padding: 9px 18px; font-size: .85rem; font-weight: 700; color: #a0a6c4 !important;
+  border: 1px solid transparent;
 }
 .stTabs [aria-selected="true"] {
-  background: rgba(168,85,247,.16) !important; color: #fff !important;
-  box-shadow: inset 0 -2px 0 #a855f7;
+  background: rgba(168,85,247,.22) !important; color: #ffffff !important;
+  border: 1px solid rgba(168,85,247,.4);
+  border-bottom: 1px solid transparent;
+  box-shadow: 0 -3px 0 #a855f7 inset;
 }
+
+/* === кнопки === */
 .stButton > button, .stDownloadButton > button {
-  border-radius: 12px; border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04); color: #e2e8f0;
-  font-weight: 700; font-size: .8rem;
+  border-radius: 12px !important; border: 1px solid rgba(168,85,247,.35) !important;
+  background: rgba(255,255,255,.06) !important; color: #f1f5f9 !important;
+  font-weight: 700 !important; font-size: .82rem !important; padding: .5rem 1rem !important;
 }
 .stButton > button:hover, .stDownloadButton > button:hover {
-  border-color: #a855f7; background: rgba(168,85,247,.16); color: #fff;
+  border-color: #c084fc !important; background: rgba(168,85,247,.25) !important;
+  color: #ffffff !important; transform: translateY(-1px);
 }
 .stButton > button[kind="primary"] {
-  background: linear-gradient(135deg,#7e22ce,#ec4899); border: none; color: #fff;
+  background: linear-gradient(135deg,#7e22ce,#ec4899) !important; border: none !important;
+  color: #ffffff !important; box-shadow: 0 8px 22px -8px rgba(168,85,247,.6);
 }
-[data-baseweb="input"], [data-baseweb="select"] > div, .stTextArea textarea {
-  background: #141835 !important; border-color: rgba(255,255,255,.1) !important;
-  border-radius: 12px !important; color: #e2e8f0 !important;
+.stButton > button[kind="primary"]:hover {
+  background: linear-gradient(135deg,#9333ea,#f472b6) !important;
 }
+
+/* === поля ввода === */
+[data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="textarea"] {
+  background-color: #1a1f44 !important; color: #f1f5f9 !important;
+  border: 1px solid rgba(168,85,247,.25) !important; border-radius: 12px !important;
+}
+[data-baseweb="input"] input, [data-baseweb="select"] input,
+[data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
+.stTextArea textarea, .stTextInput input, .stNumberInput input {
+  color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important;
+}
+[data-baseweb="select"] [data-baseweb="tag"] {
+  background: rgba(168,85,247,.25) !important; color: #f1f5f9 !important;
+}
+[data-baseweb="select"] svg { color: #c4c8e0 !important; }
+[data-testid="stFileUploaderDropzone"] {
+  background: #11163a !important; border: 2px dashed rgba(168,85,247,.4) !important;
+  border-radius: 14px !important;
+}
+[data-testid="stFileUploaderDropzone"] * { color: #d8dceb !important; }
+
+/* === radio / checkbox / slider === */
+.stRadio label, .stCheckbox label, .stToggle label { color: #f1f5f9 !important; font-weight: 600; }
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {
+  background: #c084fc !important; border-color: #f1f5f9 !important;
+}
+[data-testid="stDateInput"] input { color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; }
+
+/* === expander === */
 [data-testid="stExpander"] {
-  border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
-  background: rgba(18,22,48,.7);
+  border: 1px solid rgba(168,85,247,.2) !important; border-radius: 14px !important;
+  background: rgba(15,18,38,.85) !important;
 }
+[data-testid="stExpander"] summary, [data-testid="stExpander"] summary p {
+  color: #f1f5f9 !important; font-weight: 700 !important;
+}
+[data-testid="stExpander"] svg { color: #c084fc !important; }
+
+/* === data editor и таблицы === */
+[data-testid="stDataFrame"], .stDataFrame { border-radius: 12px; overflow: hidden; }
+[data-testid="stTable"] { color: #f1f5f9 !important; }
+[data-testid="stTable"] td, [data-testid="stTable"] th { color: #f1f5f9 !important; }
+
+/* === markdown === */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] strong { color: #f1f5f9; }
+[data-testid="stMarkdownContainer"] small, .small { color: #a8aecf; }
+
+/* === alerts === */
+[data-testid="stAlert"] {
+  background: rgba(168,85,247,.12) !important; border: 1px solid rgba(168,85,247,.3) !important;
+  border-radius: 12px !important; color: #f1f5f9 !important;
+}
+[data-testid="stAlert"] p { color: #f1f5f9 !important; }
+.stInfo, .stSuccess, .stWarning, .stError { color: #f1f5f9 !important; }
+
+/* === чипы и карточки === */
 .chip {
-  display:inline-flex; align-items:center; gap:6px; padding:4px 11px;
-  margin:2px 3px 2px 0; border-radius:999px; font-size:.7rem;
-  font-weight:600; border:1px solid;
+  display:inline-flex; align-items:center; gap:6px; padding:5px 12px;
+  margin:2px 3px 2px 0; border-radius:999px; font-size:.72rem;
+  font-weight:600; border:1px solid; color: #f1f5f9 !important;
 }
-.chip-num  { color:#86efac; border-color:rgba(16,185,129,.5); background:rgba(16,185,129,.16); }
-.chip-date { color:#7dd3fc; border-color:rgba(6,182,212,.5);  background:rgba(6,182,212,.16); }
-.chip-str  { color:#fed7aa; border-color:rgba(251,146,60,.5); background:rgba(251,146,60,.16); }
+.chip-num  { color:#d1fae5 !important; border-color:rgba(16,185,129,.5);  background:rgba(16,185,129,.18); }
+.chip-date { color:#cffafe !important; border-color:rgba(6,182,212,.5);   background:rgba(6,182,212,.18); }
+.chip-str  { color:#fef3c7 !important; border-color:rgba(251,146,60,.5);  background:rgba(251,146,60,.18); }
 .card {
-  background: rgba(22,27,55,.95); border:1px solid rgba(255,255,255,.14);
-  border-radius:16px; padding:16px 18px; box-shadow:0 12px 30px -14px rgba(0,0,0,.75);
-  color:#e8edf7;
+  background: linear-gradient(180deg, rgba(20,24,55,.95), rgba(12,15,38,.95)) !important;
+  border:1px solid rgba(168,85,247,.2) !important;
+  border-radius:16px !important; padding:16px 18px !important;
+  box-shadow: 0 12px 30px -14px rgba(0,0,0,.85);
+  color: #f1f5f9 !important;
 }
-.card b { color:#ffffff; }
-.hint { font-size:.75rem; color:#b6c2d9; }
-.insight-val { font-family:'JetBrains Mono',monospace; font-size:1.15rem; font-weight:700; color:#fff; }
+.card b, .card strong { color: #ffffff !important; }
+.hint { font-size:.78rem; color: #b8bdd9 !important; }
+.section-title {
+  font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 1.15rem;
+  color: #ffffff !important; margin: 4px 0 14px; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::before {
+  content: ''; display: block; width: 4px; height: 18px;
+  background: linear-gradient(180deg,#a855f7,#22d3ee); border-radius: 4px;
+}
 .brand {
-  font-family:'Unbounded',sans-serif; font-weight:900; font-size:1.05rem;
+  font-family:'Unbounded',sans-serif; font-weight:900; font-size:1.1rem;
   background:linear-gradient(135deg,#c084fc,#22d3ee);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
 }
+.kpi-label { color: #a8aecf !important; font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .09em; }
+.muted { color: #b8bdd9 !important; }
+.dl-ok { color: #6ee7b7 !important; }
+.dl-bad { color: #fda4af !important; }
 #MainMenu, footer { visibility: hidden; }
 </style>
 """
@@ -482,6 +562,148 @@ def shape_pivot(pt: pd.DataFrame, top_n=None, sort_desc=False) -> pd.DataFrame:
 
 
 # =============================================================================
+# ANALYTICS HELPERS
+# =============================================================================
+
+def numeric_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Возвращает только числовые колонки с приведённым к float типом."""
+    out = pd.DataFrame()
+    for c in df.columns:
+        if pd.api.types.is_numeric_dtype(df[c]):
+            out[c] = df[c]
+        else:
+            out[c] = to_num(df[c])
+    return out
+
+
+def profile_dataframe(df: pd.DataFrame, types: dict) -> pd.DataFrame:
+    """Детальный профиль по каждой колонке (как в pandas-profiling, но встроенный)."""
+    rows = []
+    for c in df.columns:
+        s = df[c]
+        non_null = int(s.notna().sum())
+        nulls = int(s.isna().sum())
+        uniq = int(s.nunique(dropna=True))
+        rows.append({
+            "Столбец": c,
+            "Тип": types.get(c, TXT),
+            "Заполнено": non_null,
+            "Пусто": nulls,
+            "Пусто %": round(nulls / max(1, len(df)) * 100, 1),
+            "Уникальных": uniq,
+            "Пример": (str(s.dropna().iloc[0])[:48] if s.notna().any() else ""),
+        })
+        if types.get(c) == NUM:
+            v = to_num(s).dropna()
+            if not v.empty:
+                rows[-1].update({
+                    "Мин": float(v.min()),
+                    "Макс": float(v.max()),
+                    "Среднее": round(float(v.mean()), 2),
+                    "Медиана": round(float(v.median()), 2),
+                    "Ст. откл.": round(float(v.std()) if len(v) > 1 else 0.0, 2),
+                    "Сумма": round(float(v.sum()), 2),
+                })
+        elif types.get(c) == DATE:
+            d = to_date(s).dropna()
+            if not d.empty:
+                rows[-1].update({"Мин": str(d.min().date()), "Макс": str(d.max().date()),
+                                 "Уникальных дат": int(d.nunique())})
+    return pd.DataFrame(rows)
+
+
+def correlation_matrix(df: pd.DataFrame) -> pd.DataFrame:
+    nums = numeric_frame(df)
+    if nums.shape[1] < 2:
+        return pd.DataFrame()
+    return nums.corr(numeric_only=True).round(2)
+
+
+def abc_analysis(df: pd.DataFrame, dim: str, measure: str) -> pd.DataFrame:
+    """ABC-анализ: ранжируем по вкладу, относим к классам A/B/C (70/20/10)."""
+    if dim not in df.columns or measure not in df.columns:
+        return pd.DataFrame()
+    tmp = pd.DataFrame({
+        dim: df[dim].astype(str),
+        "val": to_num(df[measure]).values,
+    }).groupby(dim, dropna=False)["val"].sum().sort_values(ascending=False)
+    if tmp.empty or tmp.sum() == 0:
+        return pd.DataFrame()
+    total = tmp.sum()
+    tmp = tmp.to_frame("Сумма")
+    tmp["Доля %"] = (tmp["Сумма"] / total * 100).round(2)
+    tmp["Накопленная %"] = tmp["Доля %"].cumsum()
+    def cls(x):
+        if x <= 70: return "A"
+        if x <= 90: return "B"
+        return "C"
+    tmp["Класс"] = tmp["Накопленная %"].apply(cls)
+    return tmp.reset_index()
+
+
+def xyz_analysis(df: pd.DataFrame, dim: str, measure: str) -> pd.DataFrame:
+    """XYZ: классификация по стабильности (коэффициент вариации)."""
+    if dim not in df.columns or measure not in df.columns or df.empty:
+        return pd.DataFrame()
+    g = df.groupby(dim, dropna=False)[measure].apply(lambda v: to_num(v).dropna())
+    if g.empty:
+        return pd.DataFrame()
+    out = g.reset_index()
+    out.columns = [dim, "values"]
+    stats = out["values"].apply(lambda v: pd.Series({
+        "Периодов": len(v), "Среднее": v.mean() if len(v) else 0,
+        "Ст. откл.": v.std() if len(v) > 1 else 0,
+    }))
+    stats["CV %"] = np.where(stats["Среднее"].abs() > 0,
+                              stats["Ст. откл."] / stats["Среднее"].abs() * 100, 0)
+    def cls(x):
+        if x < 10: return "X"
+        if x < 25: return "Y"
+        return "Z"
+    stats["Группа"] = stats["CV %"].apply(cls)
+    return stats.round(2).reset_index().rename(columns={"index": dim})
+
+
+def forecast_linear(series: pd.Series, periods: int = 3) -> pd.DataFrame:
+    """Простой линейный прогноз по y = a*x + b."""
+    s = pd.to_numeric(series, errors="coerce").dropna()
+    if len(s) < 2:
+        return pd.DataFrame()
+    x = np.arange(len(s))
+    a, b = np.polyfit(x, s.values, 1)
+    future_x = np.arange(len(s), len(s) + periods)
+    future_y = a * future_x + b
+    return pd.DataFrame({
+        "idx": np.concatenate([x, future_x]),
+        "value": np.concatenate([s.values, future_y]),
+        "type": ["Факт"] * len(s) + ["Прогноз"] * periods,
+    })
+
+
+def detect_outliers(s: pd.Series) -> int:
+    v = to_num(s).dropna()
+    if len(v) < 4:
+        return 0
+    q1, q3 = v.quantile(0.25), v.quantile(0.75)
+    iqr = q3 - q1
+    return int(((v < q1 - 1.5 * iqr) | (v > q3 + 1.5 * iqr)).sum())
+
+
+def quick_stats(df: pd.DataFrame, types: dict) -> dict:
+    return {
+        "rows": int(len(df)),
+        "cols": int(df.shape[1]),
+        "num_cols": int(sum(1 for t in types.values() if t == NUM)),
+        "date_cols": int(sum(1 for t in types.values() if t == DATE)),
+        "text_cols": int(sum(1 for t in types.values() if t == TXT)),
+        "duplicates": int(df.duplicated().sum()),
+        "missing": int(df.isna().sum().sum()),
+        "missing_pct": round(df.isna().sum().sum() / max(1, df.size) * 100, 2),
+        "memory_kb": round(df.memory_usage(deep=True).sum() / 1024, 1),
+    }
+
+
+# =============================================================================
 # CHART ENGINE
 # =============================================================================
 
@@ -490,18 +712,15 @@ def style_fig(fig, height: int = 420):
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Plus Jakarta Sans", size=12.5, color="#e8edf7"),
+        font=dict(family="Plus Jakarta Sans", size=12, color="#cbd5e1"),
         margin=dict(l=10, r=10, t=36, b=10),
         height=height,
         colorway=PALETTE,
-        legend=dict(orientation="h", y=-0.18, font=dict(size=11, color="#dbe4f3")),
-        hoverlabel=dict(bgcolor="#1a2040", bordercolor="#a855f7", font_size=12,
-                        font_color="#ffffff"),
+        legend=dict(orientation="h", y=-0.18, font=dict(size=10)),
+        hoverlabel=dict(bgcolor="#141938", bordercolor="#a855f7", font_size=11),
     )
-    fig.update_xaxes(gridcolor="rgba(255,255,255,.09)", zerolinecolor="rgba(255,255,255,.12)",
-                     tickfont=dict(color="#c3cfe3"))
-    fig.update_yaxes(gridcolor="rgba(255,255,255,.09)", zerolinecolor="rgba(255,255,255,.12)",
-                     tickfont=dict(color="#c3cfe3"))
+    fig.update_xaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
+    fig.update_yaxes(gridcolor="rgba(255,255,255,.06)", zerolinecolor="rgba(255,255,255,.08)")
     return fig
 
 
@@ -706,16 +925,33 @@ if ACTIVE:
         unsafe_allow_html=True,
     )
 
-tab_over, tab_build, tab_dash, tab_pivot, tab_data, tab_import = st.tabs(
-    ["Обзор", "Конструктор отчётов", "Мои дашборды", "Сводные срезы", "Данные", "Импорт"]
-)
+tab_over, tab_profile, tab_correl, tab_abc, tab_build, tab_dash, tab_pivot, tab_data, tab_import = st.tabs([
+    "Обзор", "Профиль данных", "Корреляции",
+    "ABC / XYZ", "Конструктор", "Дашборды",
+    "Сводные срезы", "Данные", "Импорт",
+])
 
 
 # =============================================================================
-# TAB 1 — OVERVIEW
+# TAB 1 — OVERVIEW (обогащённый)
 # =============================================================================
 
 with tab_over:
+    st.markdown('<div class="section-title">Сводка по набору данных</div>', unsafe_allow_html=True)
+
+    stats = quick_stats(FDF, TYPES)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("Строк", nfmt(stats["rows"]))
+    c2.metric("Столбцов", str(stats["cols"]))
+    c3.metric("Числовых", str(stats["num_cols"]))
+    c4.metric("Дат", str(stats["date_cols"]))
+    c5.metric("Дубликаты", nfmt(stats["duplicates"]),
+              delta=None if stats["duplicates"] == 0 else "проверьте")
+    c6.metric("Пропуски", f"{stats['missing_pct']}%",
+              delta=f"{nfmt(stats['missing'])} ячеек")
+
+    st.markdown("---")
+    if not cols_num:
     if not cols_num:
         st.warning("В данных нет числовых столбцов — загрузите таблицу с числами для KPI.")
     else:
@@ -750,7 +986,7 @@ with tab_over:
                     default_dim = 0
             dim = o1.selectbox("Разрез", dim_options, key="ov_dim", index=default_dim)
             meas_idx = cols_num.index(PRIMARY) if PRIMARY in cols_num else 0
-            meas = o2.selectbox("Показатель", cols_num, key="ov_meas", index=meas_idx)
+            meas = o2.selectbox("Показатель", cols_num, key="ov_meas_pick", index=meas_idx)
             gran = o3.selectbox(
                 "Гранулярность",
                 ["День", "Неделя", "Месяц", "Квартал", "Год"],
@@ -764,7 +1000,7 @@ with tab_over:
         with c2:
             st.markdown("##### Структура")
             pdim_options = cols_txt or cols_dim or list(DF.columns)
-            pdim = st.selectbox("Измерение", pdim_options, key="ov_pdim")
+            pdim = st.selectbox("Измерение", pdim_options, key="ov_pdim_pick")
             ppt = shape_pivot(build_pivot(FDF, pdim, None, meas, "Сумма"), 10, True)
             render_chart("Кольцевая", ppt, FDF, pdim, meas, "Сумма", height=300)
 
@@ -777,8 +1013,7 @@ with tab_over:
             share = top_val / float(ppt.values.sum()) * 100 if ppt.values.sum() else 0
             i1.markdown(
                 f'<div class="card"><b style="color:#c084fc">Лидер по «{pdim}»</b><br>'
-                f'<span class="insight-val">{top_name}</span><br>'
-                f"{fmt_num(top_val)} ({share:.1f}% от топ-10)</div>",
+                f"{top_name} — {fmt_num(top_val)} ({share:.1f}% от топ-10)</div>",
                 unsafe_allow_html=True,
             )
         if not pt.empty and len(pt) >= 2:
@@ -786,192 +1021,172 @@ with tab_over:
             prev = float(pt.iloc[-2].sum())
             growth = (last - prev) / prev * 100 if prev else 0
             arrow = "▲" if growth >= 0 else "▼"
-            color = "#86efac" if growth >= 0 else "#fda4af"
+            color = "#6ee7b7" if growth >= 0 else "#fda4af"
             i2.markdown(
                 f'<div class="card"><b style="color:#22d3ee">Последний период</b><br>'
-                f'<span class="insight-val">{fmt_num(last)}</span><br>'
-                f"{pt.index[-1]} "
-                f'<span style="color:{color};font-weight:700">{arrow} {abs(growth):.1f}%</span></div>',
+                f"{pt.index[-1]}: {fmt_num(last)} "
+                f'<span style="color:{color}">{arrow} {abs(growth):.1f}%</span></div>',
                 unsafe_allow_html=True,
             )
         i3.markdown(
-            f'<div class="card"><b style="color:#86efac">Структура таблицы</b><br>'
-            f'<span class="insight-val">{DF.shape[1]} столбцов</span><br>'
+            f'<div class="card"><b style="color:#6ee7b7">Структура таблицы</b><br>'
             f"{len(cols_num)} числовых · {len(cols_date)} дат · {len(cols_txt)} текстовых</div>",
             unsafe_allow_html=True,
         )
 
-        # ── РАСШИРЕННАЯ АНАЛИТИКА ────────────────────────────────────────
-        st.divider()
-        st.subheader("Расширенная аналитика")
 
-        adv1, adv2 = st.columns(2)
+# =============================================================================
+# TAB 2 — DATA PROFILE
+# =============================================================================
 
-        with adv1:
-            st.markdown("##### Топ и антитоп")
-            rank_dim = st.selectbox("Разрез рейтинга", cols_txt or cols_dim, key="adv_rank_dim")
-            rank_pt = build_pivot(FDF, rank_dim, None, meas, "Сумма")
-            if not rank_pt.empty:
-                totals_r = rank_pt.iloc[:, 0].sort_values(ascending=False)
-                t5 = totals_r.head(5)
-                b5 = totals_r.tail(5).sort_values()
-                tc, bc = st.columns(2)
-                with tc:
-                    st.markdown('<b style="color:#86efac">ТОП-5 лидеров</b>', unsafe_allow_html=True)
-                    for name, val in t5.items():
-                        pct = val / totals_r.sum() * 100 if totals_r.sum() else 0
-                        st.markdown(
-                            f'<div style="padding:6px 10px;margin:4px 0;border-radius:10px;'
-                            f'background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35)">'
-                            f'<span style="color:#fff;font-weight:700">{name}</span><br>'
-                            f'<span style="color:#86efac;font-family:JetBrains Mono">{fmt_num(val)}</span> '
-                            f'<span style="color:#b6c2d9;font-size:.72rem">({pct:.1f}%)</span></div>',
-                            unsafe_allow_html=True,
-                        )
-                with bc:
-                    st.markdown('<b style="color:#fda4af">Аутсайдеры</b>', unsafe_allow_html=True)
-                    for name, val in b5.items():
-                        pct = val / totals_r.sum() * 100 if totals_r.sum() else 0
-                        st.markdown(
-                            f'<div style="padding:6px 10px;margin:4px 0;border-radius:10px;'
-                            f'background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3)">'
-                            f'<span style="color:#fff;font-weight:700">{name}</span><br>'
-                            f'<span style="color:#fda4af;font-family:JetBrains Mono">{fmt_num(val)}</span> '
-                            f'<span style="color:#b6c2d9;font-size:.72rem">({pct:.1f}%)</span></div>',
-                            unsafe_allow_html=True,
-                        )
+with tab_profile:
+    st.markdown('<div class="section-title">Профиль данных по каждому столбцу</div>', unsafe_allow_html=True)
+    st.caption("Автоматический отчёт о качестве: типы, пропуски, статистика, уникальные значения.")
+    profile_df = profile_dataframe(FDF, TYPES)
+    st.dataframe(profile_df.style.format(na_rep="—"), use_container_width=True, height=420)
 
-        with adv2:
-            st.markdown("##### ABC-анализ (правило Парето)")
-            abc_dim = st.selectbox("Разрез ABC", cols_txt or cols_dim, key="adv_abc_dim")
-            abc_pt = build_pivot(FDF, abc_dim, None, meas, "Сумма")
-            if not abc_pt.empty:
-                s = abc_pt.iloc[:, 0].sort_values(ascending=False)
-                cum = s.cumsum() / s.sum() * 100 if s.sum() else s.cumsum()
-                abc = pd.DataFrame({
-                    abc_dim: s.index,
-                    "Значение": s.values,
-                    "Доля %": (s / s.sum() * 100).round(1) if s.sum() else 0,
-                    "Накоплено %": cum.round(1).values,
-                })
-                abc["Класс"] = np.where(abc["Накоплено %"] <= 80, "A",
-                                np.where(abc["Накоплено %"] <= 95, "B", "C"))
-                counts = abc["Класс"].value_counts()
+    if cols_txt:
+        st.markdown("##### Топ значений по текстовым колонкам")
+        sel = st.selectbox("Столбец", cols_txt, key="prof_str")
+        vc = FDF[sel].astype(str).replace("", np.nan).dropna().value_counts().head(15)
+        d = vc.reset_index(); d.columns = [sel, "Кол-во"]
+        fig = px.bar(d, x="Кол-во", y=sel, orientation="h", color="Кол-во",
+                     color_continuous_scale="Purples")
+        st.plotly_chart(style_fig(fig, 340), use_container_width=True)
+
+
+# =============================================================================
+# TAB 3 — CORRELATIONS + FORECAST
+# =============================================================================
+
+with tab_correl:
+    st.markdown('<div class="section-title">Корреляции, выбросы и прогноз</div>', unsafe_allow_html=True)
+
+    if not cols_num:
+        st.info("Нет числовых колонок.")
+    else:
+        st.markdown("##### Корреляционная матрица")
+        corr = correlation_matrix(FDF)
+        if corr.empty or corr.shape[0] < 2:
+            st.info("Нужно минимум 2 числовые колонки.")
+        else:
+            fig = px.imshow(corr, text_auto=".2f", color_continuous_scale="RdBu",
+                            zmin=-1, zmax=1, aspect="auto")
+            st.plotly_chart(style_fig(fig, 480), use_container_width=True)
+
+            pairs = []
+            cl = list(corr.columns)
+            for i, a in enumerate(cl):
+                for b in cl[i + 1:]:
+                    pairs.append((a, b, corr.loc[a, b]))
+            pairs.sort(key=lambda x: abs(x[2]), reverse=True)
+            if pairs:
+                pp = pd.DataFrame(pairs[:8], columns=["Столбец A", "Столбец B", "Корреляция"])
+                st.dataframe(pp.style.background_gradient(cmap="RdBu", subset=["Корреляция"],
+                                                          vmin=-1, vmax=1),
+                             use_container_width=True, height=300)
+
+        st.markdown("---")
+        st.markdown("##### Линейный прогноз")
+        if cols_date:
+            f1, f2, f3 = st.columns(3)
+            date_col = f1.selectbox("Столбец дат", cols_date, key="fc_date")
+            meas_col = f2.selectbox("Что прогнозируем", cols_num, key="fc_meas_x",
+                                    index=cols_num.index(PRIMARY) if PRIMARY in cols_num else 0)
+            horizon = f3.slider("Горизонт (периодов)", 1, 12, 3, key="fc_h")
+            gran = st.selectbox("Гранулярность", ["День", "Неделя", "Месяц", "Квартал", "Год"],
+                                index=2, key="fc_gran")
+            series = (build_pivot(FDF, date_col, None, meas_col, "Сумма", gran)
+                      .iloc[:, 0].reset_index(drop=True))
+            forecast = forecast_linear(series, horizon)
+            if not forecast.empty:
+                fig = go.Figure()
+                fact = forecast[forecast["type"] == "Факт"]
+                pred = forecast[forecast["type"] == "Прогноз"]
+                fig.add_trace(go.Scatter(x=fact["idx"], y=fact["value"], name="Факт",
+                                         mode="lines+markers", line=dict(color="#22d3ee", width=3)))
+                fig.add_trace(go.Scatter(x=pred["idx"], y=pred["value"], name="Прогноз",
+                                         mode="lines+markers",
+                                         line=dict(color="#a855f7", width=3, dash="dash")))
+                fig.update_layout(xaxis_title="Период", yaxis_title=meas_col)
+                st.plotly_chart(style_fig(fig, 360), use_container_width=True)
+
+                last_fact = float(fact["value"].iloc[-1])
+                last_pred = float(pred["value"].iloc[-1])
+                delta = (last_pred - last_fact) / last_fact * 100 if last_fact else 0
+                arrow_cls = "dl-ok" if delta >= 0 else "dl-bad"
                 st.markdown(
-                    f'<div style="display:flex;gap:8px;margin-bottom:8px">'
-                    f'<span class="chip chip-num">A: {counts.get("A",0)} — дают 80%</span>'
-                    f'<span class="chip chip-date">B: {counts.get("B",0)} — ещё 15%</span>'
-                    f'<span class="chip chip-str">C: {counts.get("C",0)} — хвост 5%</span></div>',
-                    unsafe_allow_html=True,
-                )
-                fig_abc = go.Figure()
-                fig_abc.add_trace(go.Bar(
-                    x=abc[abc_dim].astype(str), y=abc["Значение"], name="Значение",
-                    marker_color=["#10b981" if c == "A" else "#06b6d4" if c == "B" else "#f43f5e"
-                                  for c in abc["Класс"]],
-                ))
-                fig_abc.add_trace(go.Scatter(
-                    x=abc[abc_dim].astype(str), y=abc["Накоплено %"], name="Накоплено %",
-                    yaxis="y2", mode="lines+markers", line=dict(color="#a855f7", width=3),
-                ))
-                fig_abc.update_layout(
-                    yaxis2=dict(overlaying="y", side="right", range=[0, 105],
-                                tickfont=dict(color="#c084fc"), gridcolor="rgba(0,0,0,0)"),
-                )
-                st.plotly_chart(style_fig(fig_abc, 320), use_container_width=True)
+                    f'<div class="card"><b>Прогноз на {horizon} период(а):</b> '
+                    f'факт {fmt_num(last_fact)} → прогноз {fmt_num(last_pred)} '
+                    f'<span class="{arrow_cls}">({delta:+.1f}%)</span></div>',
+                    unsafe_allow_html=True)
+        else:
+            st.info("Прогноз требует колонку с датами.")
 
-        adv3, adv4 = st.columns(2)
 
-        with adv3:
-            st.markdown("##### Темп роста по периодам")
-            if cols_date:
-                g_date = cols_date[0]
-                g_pt = build_pivot(FDF, g_date, None, meas, "Сумма", "Месяц")
-                if len(g_pt) >= 2:
-                    ser = g_pt.iloc[:, 0]
-                    growth_ser = ser.pct_change().fillna(0) * 100
-                    fig_g = go.Figure(go.Bar(
-                        x=[str(i) for i in growth_ser.index], y=growth_ser.values,
-                        marker_color=["#10b981" if v >= 0 else "#f43f5e" for v in growth_ser.values],
-                        text=[f"{v:+.0f}%" for v in growth_ser.values], textposition="outside",
-                        textfont=dict(color="#e8edf7"),
-                    ))
-                    fig_g.update_layout(title=dict(text=f"Прирост «{meas}» месяц к месяцу, %",
-                                                   font=dict(size=13, color="#dbe4f3")))
-                    st.plotly_chart(style_fig(fig_g, 300), use_container_width=True)
-                    avg_g = growth_ser[1:].mean() if len(growth_ser) > 1 else 0
-                    pos_months = int((growth_ser[1:] > 0).sum())
-                    st.markdown(
-                        f'<div class="card">Средний темп: '
-                        f'<b style="color:{"#86efac" if avg_g>=0 else "#fda4af"}">{avg_g:+.1f}%</b> в месяц · '
-                        f'месяцев роста: <b>{pos_months}</b> из {max(len(growth_ser)-1,0)}</div>',
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.info("Недостаточно периодов для расчёта темпа роста.")
-            else:
-                st.info("В данных нет столбца-даты — тренд роста недоступен.")
+# =============================================================================
+# TAB 4 — ABC / XYZ
+# =============================================================================
 
-        with adv4:
-            st.markdown("##### Взаимосвязь показателей")
-            if len(cols_num) >= 2:
-                sc1, sc2 = st.columns(2)
-                mx = sc1.selectbox("Ось X", cols_num, key="adv_sc_x", index=0)
-                my = sc2.selectbox("Ось Y", cols_num, key="adv_sc_y",
-                                   index=1 if len(cols_num) > 1 else 0)
-                color_dim = cols_txt[0] if cols_txt else None
-                sc_df = pd.DataFrame({
-                    mx: to_num(FDF[mx]), my: to_num(FDF[my]),
-                }).dropna()
-                if color_dim:
-                    sc_df[color_dim] = FDF.loc[sc_df.index, color_dim].astype(str)
-                if not sc_df.empty:
-                    corr = sc_df[mx].corr(sc_df[my])
-                    fig_sc = px.scatter(
-                        sc_df, x=mx, y=my,
-                        color=color_dim if color_dim else None,
-                        opacity=0.75, trendline=None,
-                    )
-                    st.plotly_chart(style_fig(fig_sc, 300), use_container_width=True)
-                    strength = ("сильная" if abs(corr) >= 0.7 else
-                                "умеренная" if abs(corr) >= 0.4 else "слабая")
-                    st.markdown(
-                        f'<div class="card">Корреляция «{mx}» и «{my}»: '
-                        f'<b style="color:#c084fc">{corr:+.2f}</b> ({strength})</div>',
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.info("Нужно минимум 2 числовых столбца для анализа взаимосвязи.")
+with tab_abc:
+    st.markdown('<div class="section-title">ABC и XYZ анализ</div>', unsafe_allow_html=True)
+    if not cols_dim or not cols_num:
+        st.info("Нужны измерения и числовые колонки.")
+    else:
+        a1, a2 = st.columns(2)
+        dim = a1.selectbox("Измерение (ABC)", cols_dim, key="abc_dim")
+            meas_abc = a2.selectbox("Мера (ABC)", cols_num, key="abc_meas_x",
+                                    index=cols_num.index(PRIMARY) if PRIMARY in cols_num else 0)
+        abc = abc_analysis(FDF, dim, meas_abc)
+        if abc.empty:
+            st.info("Нет данных.")
+        else:
+            st.markdown("##### ABC — вклад в общий результат (A=70%, B=20%, C=10%)")
+            st.dataframe(
+                abc.style.background_gradient(cmap="Purples", subset=["Сумма"])
+                .format({"Сумма": lambda v: fmt_num(v),
+                         "Доля %": "{:.2f}%".format,
+                         "Накопленная %": "{:.2f}%".format}),
+                use_container_width=True, height=380,
+            )
+            fig = px.bar(abc, x=dim, y="Сумма", color="Класс",
+                         color_discrete_map={"A": "#10b981", "B": "#f59e0b", "C": "#f43f5e"})
+            st.plotly_chart(style_fig(fig, 340), use_container_width=True)
 
-        st.divider()
-        st.markdown("##### Описательная статистика по числовым столбцам")
-        if cols_num:
-            desc_rows = []
-            for c in cols_num:
-                v = to_num(FDF[c]).dropna()
-                if v.empty:
-                    continue
-                desc_rows.append({
-                    "Показатель": c,
-                    "Сумма": float(v.sum()),
-                    "Среднее": float(v.mean()),
-                    "Медиана": float(v.median()),
-                    "Мин": float(v.min()),
-                    "Макс": float(v.max()),
-                    "Ст.откл.": float(v.std()) if len(v) > 1 else 0.0,
-                    "Заполнено": f"{len(v)}/{len(FDF)}",
-                })
-            if desc_rows:
-                desc_df = pd.DataFrame(desc_rows).set_index("Показатель")
-                num_cols_fmt = ["Сумма", "Среднее", "Медиана", "Мин", "Макс", "Ст.откл."]
+        if cols_date:
+            st.markdown("---")
+            st.markdown("##### XYZ — стабильность (CV %)")
+            d1, d2 = st.columns(2)
+            date_col = d1.selectbox("Период", cols_date, key="xyz_date")
+            meas_xyz = d2.selectbox("Мера (XYZ)", cols_num, key="xyz_meas_x",
+                                    index=cols_num.index(PRIMARY) if PRIMARY in cols_num else 0)
+            gran = st.selectbox("Гранулярность", ["День", "Неделя", "Месяц", "Квартал", "Год"],
+                                index=2, key="xyz_gran")
+            grouped = FDF.copy()
+            grouped["__p"] = dim_series(grouped, date_col, gran)
+            grouped["__v"] = to_num(grouped[meas_xyz])
+            xyz = (grouped.groupby("__p", dropna=False)["__v"]
+                   .agg(["mean", "std", "count"]).reset_index().dropna())
+            if not xyz.empty:
+                xyz["CV %"] = np.where(xyz["mean"].abs() > 0,
+                                       xyz["std"] / xyz["mean"].abs() * 100, 0)
+                xyz["Группа"] = xyz["CV %"].apply(
+                    lambda x: "X" if x < 10 else ("Y" if x < 25 else "Z"))
+                fig = px.scatter(xyz, x="__p", y="mean", color="Группа",
+                                 size=xyz["std"].abs() + 1,
+                                 color_discrete_map={"X": "#10b981", "Y": "#f59e0b", "Z": "#f43f5e"})
+                st.plotly_chart(style_fig(fig, 340), use_container_width=True)
                 st.dataframe(
-                    desc_df.style.format({c: (lambda v: fmt_num(v)) for c in num_cols_fmt}),
-                    use_container_width=True,
+                    xyz.rename(columns={"__p": date_col, "mean": "Среднее",
+                                        "std": "Ст. откл.", "count": "Кол-во"})
+                    [[date_col, "Среднее", "Ст. откл.", "CV %", "Группа"]]
+                    .style.background_gradient(cmap="RdYlGn_r", subset=["CV %"]),
+                    use_container_width=True, height=320,
                 )
 
 
 # =============================================================================
-# TAB 2 — BUILDER
+# TAB 5 — BUILDER
 # =============================================================================
 
 with tab_build:
@@ -995,7 +1210,7 @@ with tab_build:
         if not meas_pool:
             meas_pool = list(DF.columns)
         meas_idx = meas_pool.index(PRIMARY) if PRIMARY in meas_pool else 0
-        meas = st.selectbox("Показатель (мера)", meas_pool, key="b_meas", index=meas_idx)
+        meas = st.selectbox("Показатель (мера)", meas_pool, key="b_meas_pick", index=meas_idx)
         kind = st.selectbox("Тип визуализации", CHARTS, key="b_kind")
 
         gran = "Месяц"
@@ -1140,7 +1355,7 @@ with tab_pivot:
     pmeas_pool = cols_num if AGGS[pagg] in NUMERIC_AGGS else list(DF.columns)
     if not pmeas_pool:
         pmeas_pool = list(DF.columns)
-    pmeas = p4.selectbox("Мера", pmeas_pool, key="p_meas")
+    pmeas = p4.selectbox("Мера", pmeas_pool, key="p_meas_pick")
     pgran = p5.selectbox(
         "Даты", ["День", "Неделя", "Месяц", "Квартал", "Год"], index=2, key="p_gran"
     )
